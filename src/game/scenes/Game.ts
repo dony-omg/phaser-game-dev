@@ -5,17 +5,26 @@ import { PlayerSprite } from '../objects/PlayerSprite';
 export class Game extends Scene
 {
     camera: Phaser.Cameras.Scene2D.Camera;
-    leaves: Phaser.GameObjects.Image[];
+    trackImage!: Phaser.GameObjects.Image;
     player!: PlayerSprite;
     parallaxLayers: Phaser.GameObjects.Image[];
 
     // UI
     jumpButton: Phaser.GameObjects.Container;
+    jumpButtonBg!: Phaser.GameObjects.Rectangle;
     scoreText: Phaser.GameObjects.Text;
 
     // Game State
     score: number = 0;
     currentLeafIndex: number = 0;
+
+    // Leaf path (detected from track texture)
+    private leafPath: Phaser.Math.Vector2[] = [];
+
+    // Fallback zig-zag config
+    private readonly leafStartY = 940;
+    private readonly leafStepY = 140;
+    private readonly leafSideOffset = 180;
 
     
     constructor ()
@@ -31,14 +40,16 @@ export class Game extends Scene
         // Parallax background
         this.createParallaxBackground();
 
-        // Track (Leaves) - Tile vertically
-        // The asset is 1024x1024.
-        this.leaves = [];
-        for (let i = 0; i < 10; i++) {
-            const track = this.add.image(width / 2, 1280 - (i * 1024), 'track-leaves');
-            track.setScale(1); // It's 1024 wide, screen is 720. Scale 1 is fine, covers width.
-            this.leaves.push(track);
-        }
+        // Track (Leaves) - Use bg-main as the scrolling map
+        this.trackImage = this.add.image(width / 2, height, 'bg-main').setOrigin(0.5, 1);
+        const trackScale = width / this.trackImage.width;
+        this.trackImage.setScale(trackScale);
+
+        const mapTop = this.trackImage.y - this.trackImage.displayHeight;
+        this.camera.setBounds(0, mapTop, width, this.trackImage.displayHeight);
+
+        // Build leaf path based on the map texture
+        this.leafPath = this.buildLeafPath('bg-main');
 
         // Player Setup - Using PlayerSprite (animated spritesheet)
         const startPos = this.getLeafPosition(0);
@@ -58,25 +69,8 @@ export class Game extends Scene
     }
 
     createParallaxBackground() {
-        const { width, height } = this.scale;
-        const layerKeys = ['bg-1', 'bg-2', 'bg-3', 'bg-4', 'bg-5', 'bg-6'];
-        const scrollFactors = [0.03, 0.05, 0.08, 0.12, 0.16, 0.2];
-
-        this.parallaxLayers = layerKeys.map((key, index) => {
-            const layer = this.add.image(width / 2, height / 2, key)
-                .setScrollFactor(0)
-                .setDepth(-100 + index);
-
-            const scaleX = width / layer.width;
-            layer.setDisplaySize(width, layer.height * scaleX);
-            layer.setData('baseY', height / 2);
-
-            return layer;
-        });
-
-        this.parallaxLayers.forEach((layer, index) => {
-            layer.setData('scrollFactor', scrollFactors[index]);
-        });
+        this.cameras.main.setBackgroundColor(0x3fb3e8);
+        this.parallaxLayers = [];
     }
 
     update() {
@@ -105,7 +99,10 @@ export class Game extends Scene
 
         // Jump Button
         this.jumpButton = this.createJumpButton(width / 2, height - 150);
+        this.jumpButton.setScrollFactor(0);
         uiContainer.add(this.jumpButton);
+
+        this.setupJumpInput();
     }
 
     createJumpButton(x: number, y: number) {
@@ -121,20 +118,29 @@ export class Game extends Scene
 
         container.add([bg, text]);
         container.setSize(300, 100);
-        container.setInteractive(new Phaser.Geom.Rectangle(-150, -50, 300, 100), Phaser.Geom.Rectangle.Contains);
 
-        container.on('pointerdown', () => {
+        this.jumpButtonBg = bg;
+
+        const onPress = () => {
             bg.setFillStyle(0x16a34a);
             this.handleJump();
-        });
-        
-        container.on('pointerup', () => {
+        };
+
+        const onRelease = () => {
             bg.setFillStyle(0x22c55e);
-        });
-        
-        container.on('pointerout', () => {
-            bg.setFillStyle(0x22c55e);
-        });
+        };
+
+        bg.setInteractive({ useHandCursor: true });
+        text.setInteractive({ useHandCursor: true });
+
+        bg.on('pointerdown', onPress);
+        text.on('pointerdown', onPress);
+
+        bg.on('pointerup', onRelease);
+        text.on('pointerup', onRelease);
+
+        bg.on('pointerout', onRelease);
+        text.on('pointerout', onRelease);
 
         // Add simple pulse tween
         this.tweens.add({
@@ -148,6 +154,23 @@ export class Game extends Scene
         return container;
     }
 
+    private setupJumpInput(): void {
+        this.input.enabled = true;
+        if (this.input.mouse) this.input.mouse.enabled = true;
+
+        this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+            const bounds = this.jumpButton.getBounds();
+            if (bounds.contains(pointer.x, pointer.y)) {
+                this.jumpButtonBg.setFillStyle(0x16a34a);
+                this.handleJump();
+            }
+        });
+
+        this.input.on('pointerup', () => {
+            this.jumpButtonBg.setFillStyle(0x22c55e);
+        });
+    }
+
     async handleJump() {
         if (this.player.isJumping()) return;
 
@@ -157,7 +180,6 @@ export class Game extends Scene
         // Visual feedback
         this.score += 10;
         this.scoreText.setText(`Score: ${this.score}`);
-        this.player.showEmote('happy');
 
         // Stop idle animation during jump
         this.player.stopIdle();
@@ -181,20 +203,200 @@ export class Game extends Scene
     }
 
     getLeafPosition(index: number) {
+        if (this.leafPath.length > 0 && this.trackImage) {
+            const pathLength = this.leafPath.length;
+            const pathIndex = Math.min(index, pathLength - 1);
+
+            const leaf = this.leafPath[pathIndex];
+            const scale = this.trackImage.scaleX;
+            const mapLeft = this.trackImage.x - this.trackImage.displayWidth / 2;
+            const mapTop = this.trackImage.y - this.trackImage.displayHeight;
+
+            const x = mapLeft + (leaf.x * scale);
+            const y = mapTop + (leaf.y * scale);
+
+            return { x, y };
+        }
+
         const centerX = this.scale.width / 2;
-        // The zig-zag in the generated image might not be perfect, 
-        // but we'll approximate a zig-zag path.
-        // Image is 1024x1024. 
-        // Let's assume a roughly consistent pattern or just generic zig zag.
-        
-        const sideOffset = 150;
         const isLeft = index % 2 === 0;
         
-        // Moving up
-        const y = 950 - (index * 200); 
-        const x = isLeft ? centerX - sideOffset : centerX + sideOffset;
+        // Adjacent leaf = alternate left/right with a small upward step
+        const y = this.leafStartY - (index * this.leafStepY);
+        const x = isLeft ? centerX - this.leafSideOffset : centerX + this.leafSideOffset;
         
         return { x, y };
+    }
+
+    private buildLeafPath(textureKey: string): Phaser.Math.Vector2[] {
+        const texture = this.textures.get(textureKey);
+        const source = texture?.getSourceImage() as HTMLImageElement | HTMLCanvasElement | undefined;
+
+        if (!source || !source.width || !source.height) {
+            return [];
+        }
+
+        const canvas = this.sys.game.canvas.ownerDocument.createElement('canvas');
+        canvas.width = source.width;
+        canvas.height = source.height;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return [];
+
+        ctx.drawImage(source, 0, 0);
+        const imageData = ctx.getImageData(0, 0, source.width, source.height);
+        const data = imageData.data;
+
+        const width = source.width;
+        const height = source.height;
+        const visited = new Uint8Array(width * height);
+        const centers: Phaser.Math.Vector2[] = [];
+
+        const isLeafPixel = (idx: number) => {
+            const r = data[idx] / 255;
+            const g = data[idx + 1] / 255;
+            const b = data[idx + 2] / 255;
+
+            const max = Math.max(r, g, b);
+            const min = Math.min(r, g, b);
+            const delta = max - min;
+
+            if (delta === 0) return false;
+
+            let hue = 0;
+            if (max === r) {
+                hue = ((g - b) / delta) % 6;
+            } else if (max === g) {
+                hue = (b - r) / delta + 2;
+            } else {
+                hue = (r - g) / delta + 4;
+            }
+            hue = Math.round(hue * 60);
+            if (hue < 0) hue += 360;
+
+            const saturation = max === 0 ? 0 : delta / max;
+
+            const isGreenHue = hue >= 70 && hue <= 150;
+            const isSaturated = saturation >= 0.35;
+
+            return isGreenHue && isSaturated;
+        };
+
+        const minBlobSize = 4500;
+        const stack: number[] = [];
+
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const index = y * width + x;
+                if (visited[index]) continue;
+
+                const dataIndex = index * 4;
+                if (!isLeafPixel(dataIndex)) {
+                    visited[index] = 1;
+                    continue;
+                }
+
+                let sumX = 0;
+                let sumY = 0;
+                let count = 0;
+                let minX = x;
+                let maxX = x;
+                let minY = y;
+                let maxY = y;
+
+                stack.push(index);
+                visited[index] = 1;
+
+                while (stack.length) {
+                    const current = stack.pop() as number;
+                    const cy = Math.floor(current / width);
+                    const cx = current - (cy * width);
+
+                    const currentDataIndex = current * 4;
+                    if (!isLeafPixel(currentDataIndex)) {
+                        continue;
+                    }
+
+                    sumX += cx;
+                    sumY += cy;
+                    count += 1;
+                    if (cx < minX) minX = cx;
+                    if (cx > maxX) maxX = cx;
+                    if (cy < minY) minY = cy;
+                    if (cy > maxY) maxY = cy;
+
+                    if (cx > 0) {
+                        const left = current - 1;
+                        if (!visited[left]) {
+                            const leftIndex = left * 4;
+                            if (isLeafPixel(leftIndex)) {
+                                visited[left] = 1;
+                                stack.push(left);
+                            } else {
+                                visited[left] = 1;
+                            }
+                        }
+                    }
+
+                    if (cx < width - 1) {
+                        const right = current + 1;
+                        if (!visited[right]) {
+                            const rightIndex = right * 4;
+                            if (isLeafPixel(rightIndex)) {
+                                visited[right] = 1;
+                                stack.push(right);
+                            } else {
+                                visited[right] = 1;
+                            }
+                        }
+                    }
+
+                    if (cy > 0) {
+                        const up = current - width;
+                        if (!visited[up]) {
+                            const upIndex = up * 4;
+                            if (isLeafPixel(upIndex)) {
+                                visited[up] = 1;
+                                stack.push(up);
+                            } else {
+                                visited[up] = 1;
+                            }
+                        }
+                    }
+
+                    if (cy < height - 1) {
+                        const down = current + width;
+                        if (!visited[down]) {
+                            const downIndex = down * 4;
+                            if (isLeafPixel(downIndex)) {
+                                visited[down] = 1;
+                                stack.push(down);
+                            } else {
+                                visited[down] = 1;
+                            }
+                        }
+                    }
+                }
+
+                if (count >= minBlobSize) {
+                    const blobWidth = maxX - minX;
+                    const blobHeight = maxY - minY;
+                    const aspect = blobWidth / (blobHeight || 1);
+
+                    if (blobWidth >= 90 && blobHeight >= 90 && aspect > 0.6 && aspect < 1.7) {
+                        centers.push(new Phaser.Math.Vector2(sumX / count, sumY / count));
+                    }
+                }
+            }
+        }
+
+        centers.sort((a, b) => {
+            const dy = b.y - a.y;
+            if (Math.abs(dy) > 2) return dy;
+            return a.x - b.x;
+        });
+
+        return centers;
     }
 
     /**

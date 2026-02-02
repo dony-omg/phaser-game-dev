@@ -124,13 +124,13 @@ export class Preloader extends Scene
         this.load.image('ui-example', 'ui/example.png');
 
         // ==================== GAMEPLAY ASSETS ====================
-        // this.load.image('track-leaves', 'track-leaves.png');
         this.load.image('bg-1', 'backgrounds/1.png');
         this.load.image('bg-2', 'backgrounds/2.png');
         this.load.image('bg-3', 'backgrounds/3.png');
         this.load.image('bg-4', 'backgrounds/4.png');
         this.load.image('bg-5', 'backgrounds/5.png');
         this.load.image('bg-6', 'backgrounds/6.png');
+        this.load.image('bg-main', 'backgrounds/bg 2.png');
 
         // ==================== CHARACTER ASSETS ====================
         this.load.spritesheet('character', 'characters/character animation tran.png', {
