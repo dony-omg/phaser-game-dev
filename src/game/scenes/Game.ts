@@ -1,12 +1,12 @@
 import { EventBus } from '../EventBus';
 import { Scene } from 'phaser';
-import { PlayerSprite } from '../objects/PlayerSprite';
+import { EmoteCharacter } from '../objects/EmoteCharacter';
 
 export class Game extends Scene
 {
     camera: Phaser.Cameras.Scene2D.Camera;
     trackImage!: Phaser.GameObjects.Image;
-    player!: PlayerSprite;
+    player!: EmoteCharacter;
     parallaxLayers: Phaser.GameObjects.Image[];
 
     // UI
@@ -51,10 +51,13 @@ export class Game extends Scene
         // Build leaf path based on the map texture
         this.leafPath = this.buildLeafPath('bg-main');
 
-        // Player Setup - Using PlayerSprite (animated spritesheet)
+        // Player Setup - Using EmoteCharacter (idle/correct/incorrect states)
         const startPos = this.getLeafPosition(0);
-        this.player = new PlayerSprite(this, startPos.x, startPos.y);
+        this.player = new EmoteCharacter(this, startPos.x, startPos.y);
         this.currentLeafIndex = 0;
+
+        const nextPos = this.getLeafPosition(this.currentLeafIndex + 1);
+        this.player.flip(nextPos.x > startPos.x);
 
         // Start idle animation
         this.player.playIdle();
@@ -189,17 +192,23 @@ export class Game extends Scene
             targets: this.camera,
             scrollY: targetPos.y - 800,
             duration: 600,
-            ease: 'Power2'
+            ease: 'Sine.easeInOut'
         });
 
         // Perform jump using EmoteCharacter
-        await this.player.jumpTo(targetPos.x, targetPos.y, 600);
+        await this.player.jumpTo(targetPos.x, targetPos.y, 900);
 
         // Update state after jump completes
         this.currentLeafIndex = nextIndex;
 
-        // Resume idle animation
-        this.player.playIdle();
+        const nextPos = this.getLeafPosition(this.currentLeafIndex + 1);
+        this.player.flip(nextPos.x > targetPos.x);
+
+        // Show correct state on new leaf, then resume idle
+        this.player.showCorrect(800);
+        this.time.delayedCall(800, () => {
+            this.player.playIdle();
+        });
     }
 
     getLeafPosition(index: number) {
@@ -404,9 +413,9 @@ export class Game extends Scene
      */
     showPlayerState(state: 'correct' | 'incorrect') {
         if (state === 'correct') {
-            this.player.showEmote('happy');
+            this.player.showCorrect(800);
         } else {
-            this.player.showEmote('fail');
+            this.player.showIncorrect(800);
         }
     }
 }

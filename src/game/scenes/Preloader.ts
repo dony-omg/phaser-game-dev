@@ -150,8 +150,12 @@ export class Preloader extends Scene
 
         // Legacy emotes
         this.load.image('emote-happy', 'emotes/emo.png');
-        this.load.image('emote-happy-tran', 'emotes/emo tran.png');
-        this.load.image('emote-fail', 'emotes/emo tran flipped.png');
+        this.load.image('emote-tran-idle', 'emotes/emo tran .png');
+        this.load.image('emote-tran-idle-flipped', 'emotes/emo tran flipped idle.png');
+        this.load.image('emote-tran-correct', 'emotes/emo tran correct.png');
+        this.load.image('emote-tran-correct-flipped', 'emotes/emo tran flipped correct.png');
+        this.load.image('emote-tran-incorrect', 'emotes/emo tran incorrect.png');
+        this.load.image('emote-tran-incorrect-flipped', 'emotes/emo tran flipped incorrect.png');
 
         // ==================== TILE ASSETS ====================
         this.load.image('tile-1', 'tiles/1.png');
@@ -236,6 +240,13 @@ export class Preloader extends Scene
             key: 'character-fly',
             frames: this.anims.generateFrameNumbers('character', { start: 0, end: 9 }),
             frameRate: 10,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'tran-jump',
+            frames: this.anims.generateFrameNumbers('character', { start: 0, end: 4 }),
+            frameRate: 6,
             repeat: -1
         });
     }
