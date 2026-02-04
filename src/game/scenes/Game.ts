@@ -23,6 +23,8 @@ export class Game extends Scene
     quizCurrentIndex: number = 0;
     startModal!: Phaser.GameObjects.Container;
     startModalOpen: boolean = false;
+    endModal!: Phaser.GameObjects.Container;
+    gameCompleted: boolean = false;
 
     // Game State
     score: number = 0;
@@ -131,6 +133,9 @@ export class Game extends Scene
 
         // Ensure only UI camera renders UI
         this.cameras.main.ignore(this.uiRoot);
+
+        // End Modal
+        this.createEndModal();
     }
 
     createJumpButton(x: number, y: number) {
@@ -316,6 +321,52 @@ export class Game extends Scene
         if (this.uiRoot) this.uiRoot.add(container);
     }
 
+    private createEndModal(): void {
+        const { width, height } = this.scale;
+
+        const container = this.add.container(0, 0).setScrollFactor(0).setDepth(230);
+
+        const overlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.75)
+            .setOrigin(0, 0);
+
+        const panelWidth = Math.min(640, width - 120);
+        const panelHeight = Math.min(360, height - 220);
+        const panelContainer = this.add.container(width / 2, height / 2).setScrollFactor(0);
+
+        const panelShadow = this.add.graphics();
+        panelShadow.fillStyle(0x000000, 0.35);
+        panelShadow.fillRoundedRect(-panelWidth / 2 + 6, -panelHeight / 2 + 10, panelWidth, panelHeight, 24);
+
+        const panelBg = this.add.graphics();
+        panelBg.fillStyle(0x0b1220, 1);
+        panelBg.fillRoundedRect(-panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight, 24);
+        panelBg.lineStyle(3, 0xffffff, 0.6);
+        panelBg.strokeRoundedRect(-panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight, 24);
+
+        const title = this.add.text(0, -panelHeight / 2 + 48, 'Chúc mừng!', {
+            fontFamily: 'Arial Black',
+            fontSize: '32px',
+            color: '#f8fafc'
+        }).setOrigin(0.5);
+
+        const subtitle = this.add.text(0, -panelHeight / 2 + 100, 'Bạn đã hoàn thành hành trình', {
+            fontFamily: 'Arial',
+            fontSize: '22px',
+            color: '#cbd5f5',
+            align: 'center',
+            wordWrap: { width: panelWidth - 80, useAdvancedWrap: true }
+        }).setOrigin(0.5, 0);
+
+        panelContainer.add([panelShadow, panelBg, title, subtitle]);
+
+        container.add([overlay, panelContainer]);
+        container.setVisible(false);
+
+        this.endModal = container;
+        this.endModal.setData('panel', panelContainer);
+        if (this.uiRoot) this.uiRoot.add(container);
+    }
+
     private createStartButton(x: number, y: number): Phaser.GameObjects.Container {
         const container = this.add.container(x, y).setScrollFactor(0);
         const width = 260;
@@ -468,6 +519,7 @@ export class Game extends Scene
     }
 
     private openQuizModal(): void {
+        if (this.gameCompleted) return;
         if (this.player.isJumping()) return;
         this.quizOpen = true;
         this.quizLocked = false;
@@ -569,6 +621,11 @@ export class Game extends Scene
         if (this.player.isJumping()) return;
 
         const nextIndex = this.currentLeafIndex + 1;
+        const maxIndex = this.leafPath.length > 0 ? this.leafPath.length - 1 : Number.POSITIVE_INFINITY;
+
+        if (this.leafPath.length > 0 && nextIndex > maxIndex) {
+            return;
+        }
         const targetPos = this.getLeafPosition(nextIndex);
 
         // Visual feedback
@@ -599,6 +656,35 @@ export class Game extends Scene
         this.player.showCorrect(800);
         this.time.delayedCall(800, () => {
             this.player.playIdle();
+        });
+
+        if (this.leafPath.length > 0 && this.currentLeafIndex >= maxIndex) {
+            this.gameCompleted = true;
+            this.jumpButton.setAlpha(0.4);
+            this.quizOpen = false;
+            this.quizLocked = false;
+            this.time.delayedCall(400, () => {
+                this.openEndModal();
+            });
+        }
+    }
+
+    private openEndModal(): void {
+        if (!this.endModal) return;
+        const panel = this.endModal.getData('panel') as Phaser.GameObjects.Container;
+        panel.setScale(0.96);
+        this.endModal.setVisible(true);
+        this.endModal.setAlpha(0);
+        this.tweens.add({
+            targets: this.endModal,
+            alpha: 1,
+            duration: 200
+        });
+        this.tweens.add({
+            targets: panel,
+            scale: 1,
+            duration: 240,
+            ease: 'Back.easeOut'
         });
     }
 
