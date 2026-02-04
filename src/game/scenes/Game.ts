@@ -17,7 +17,16 @@ export class Game extends Scene
     jumpButtonBg!: Phaser.GameObjects.Rectangle;
     scoreText: Phaser.GameObjects.Text;
     quizModal!: Phaser.GameObjects.Container;
+    quizPanelContainer!: Phaser.GameObjects.Container;
+    quizPanelShadow!: Phaser.GameObjects.Graphics;
+    quizPanelBg!: Phaser.GameObjects.Graphics;
+    quizPanelGlow!: Phaser.GameObjects.Graphics;
+    quizPanelWidth: number = 0;
+    quizPanelHeight: number = 0;
+    uiScale: number = 1;
+    safeInsetBottom: number = 16;
     quizQuestionText!: Phaser.GameObjects.Text;
+    quizIndexText!: Phaser.GameObjects.Text;
     quizOptionButtons: Phaser.GameObjects.Container[] = [];
     quizOpen: boolean = false;
     quizLocked: boolean = false;
@@ -25,6 +34,10 @@ export class Game extends Scene
     startModal!: Phaser.GameObjects.Container;
     startModalOpen: boolean = false;
     endModal!: Phaser.GameObjects.Container;
+    endModalScoreText!: Phaser.GameObjects.Text;
+    endModalTimeText!: Phaser.GameObjects.Text;
+    confettiEmitter?: Phaser.GameObjects.Particles.ParticleEmitter;
+    confettiBurstEvent?: Phaser.Time.TimerEvent;
     gameCompleted: boolean = false;
     timeUpModal!: Phaser.GameObjects.Container;
     gameOver: boolean = false;
@@ -32,6 +45,7 @@ export class Game extends Scene
     timerFrame!: Phaser.GameObjects.Graphics;
     timerEvent!: Phaser.Time.TimerEvent;
     totalTimeMs: number = 180000;
+    jumpDurationMs: number = 900;
 
     // Game State
     score: number = 0;
@@ -139,11 +153,14 @@ export class Game extends Scene
         }).setOrigin(0.5);
 
         this.timerOverlay.add([this.timerFrame, this.timerText]);
+        this.uiRoot.add(this.timerOverlay);
 
         // Jump Button
         this.jumpButton = this.createJumpButton(width / 2, height - 150);
         this.jumpButton.setScrollFactor(0);
         this.uiRoot.add(this.jumpButton);
+        this.jumpButton.setVisible(false);
+        this.jumpButton.setActive(false);
 
         this.setupJumpInput();
 
@@ -237,56 +254,57 @@ export class Game extends Scene
 
         const container = this.add.container(0, 0).setScrollFactor(0).setDepth(200);
 
-        const overlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.65)
-            .setOrigin(0, 0);
+        this.uiScale = Phaser.Math.Clamp(width / 900, 0.9, 1.05);
+        this.safeInsetBottom = Math.max(24, Math.round(height * 0.03));
 
-        const panelWidth = Math.min(760, width - 80);
-        const panelHeight = Math.min(520, height - 160);
+        const panelWidth = Math.min(820, width - 40);
+        const panelHeight = 240;
+        this.quizPanelWidth = panelWidth;
+        this.quizPanelHeight = panelHeight;
 
-        const panelContainer = this.add.container(width / 2, height / 2).setScrollFactor(0);
+        const panelContainer = this.add.container(width / 2, height - panelHeight / 2 - 24).setScrollFactor(0);
+        panelContainer.setScale(this.uiScale);
 
         const panelShadow = this.add.graphics();
         panelShadow.fillStyle(0x000000, 0.35);
         panelShadow.fillRoundedRect(-panelWidth / 2 + 6, -panelHeight / 2 + 10, panelWidth, panelHeight, 24);
 
         const panelBg = this.add.graphics();
-        panelBg.fillStyle(0x0b1220, 1);
+        panelBg.fillStyle(0x111827, 0.95);
         panelBg.fillRoundedRect(-panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight, 24);
-        panelBg.lineStyle(3, 0xffffff, 0.6);
+        panelBg.lineStyle(2, 0xffffff, 0.4);
         panelBg.strokeRoundedRect(-panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight, 24);
 
         const panelGlow = this.add.graphics();
-        panelGlow.fillStyle(0x1e293b, 0.9);
+        panelGlow.fillStyle(0x1f2937, 0.9);
         panelGlow.fillRoundedRect(-panelWidth / 2 + 10, -panelHeight / 2 + 10, panelWidth - 20, panelHeight - 20, 18);
 
-        const ribbon = this.add.graphics();
-        ribbon.fillStyle(0x16a34a, 1);
-        ribbon.fillRoundedRect(-panelWidth / 2 + 24, -panelHeight / 2 + 18, panelWidth - 48, 48, 12);
-
-        const ribbonText = this.add.text(0, -panelHeight / 2 + 42, 'Câu hỏi trắc nghiệm', {
+        this.quizIndexText = this.add.text(0, -panelHeight / 2 + 14, 'Câu 1/4', {
             fontFamily: 'Arial Black',
-            fontSize: '26px',
-            color: '#f8fafc'
+            fontSize: '16px',
+            color: '#fcd34d'
         }).setOrigin(0.5);
 
-        this.quizQuestionText = this.add.text(0, -panelHeight / 2 + 110, '...', {
-            fontFamily: 'Arial',
-            fontSize: '24px',
-            color: '#e2e8f0',
+        this.quizQuestionText = this.add.text(0, -panelHeight / 2 + 36, '...', {
+            fontFamily: 'Arial Black',
+            fontSize: '30px',
+            color: '#f8fafc',
             align: 'center',
-            wordWrap: { width: panelWidth - 120, useAdvancedWrap: true }
+            wordWrap: { width: panelWidth - 140, useAdvancedWrap: true }
         }).setOrigin(0.5, 0);
 
-        panelContainer.add([panelShadow, panelBg, panelGlow, ribbon, ribbonText, this.quizQuestionText]);
+        panelContainer.add([panelShadow, panelBg, panelGlow, this.quizIndexText, this.quizQuestionText]);
 
-        const optionsStartY = -panelHeight / 2 + 210;
-        const optionGap = 74;
+        const optionsStartY = -panelHeight / 2 + 88;
+        const optionGapY = 56;
         this.quizOptionButtons = [];
 
-        container.add([overlay, panelContainer]);
+        container.add([panelContainer]);
 
         for (let i = 0; i < 4; i++) {
-            const option = this.createQuizOption(0, optionsStartY + i * optionGap, i);
+            const y = optionsStartY + i * optionGapY;
+            const option = this.createQuizOption(0, y, i);
+            option.setScale(this.uiScale);
             this.quizOptionButtons.push(option);
             panelContainer.add(option);
         }
@@ -295,7 +313,13 @@ export class Game extends Scene
 
         this.quizModal = container;
         this.quizModal.setData('panel', panelContainer);
+        this.quizPanelContainer = panelContainer;
+        this.quizPanelShadow = panelShadow;
+        this.quizPanelBg = panelBg;
+        this.quizPanelGlow = panelGlow;
         if (this.uiRoot) this.uiRoot.add(container);
+
+        this.layoutQuizPanel();
     }
 
     private createStartModal(): void {
@@ -303,47 +327,30 @@ export class Game extends Scene
 
         const container = this.add.container(0, 0).setScrollFactor(0).setDepth(220);
 
-        const overlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.72)
+        const overlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.6)
             .setOrigin(0, 0);
-
-        const panelWidth = Math.min(640, width - 120);
-        const panelHeight = Math.min(360, height - 220);
-        const panelContainer = this.add.container(width / 2, height / 2).setScrollFactor(0);
-
-        const panelShadow = this.add.graphics();
-        panelShadow.fillStyle(0x000000, 0.35);
-        panelShadow.fillRoundedRect(-panelWidth / 2 + 6, -panelHeight / 2 + 10, panelWidth, panelHeight, 24);
-
-        const panelBg = this.add.graphics();
-        panelBg.fillStyle(0x0b1220, 1);
-        panelBg.fillRoundedRect(-panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight, 24);
-        panelBg.lineStyle(3, 0xffffff, 0.6);
-        panelBg.strokeRoundedRect(-panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight, 24);
-
-        const title = this.add.text(0, -panelHeight / 2 + 48, 'Bắt đầu trò chơi', {
-            fontFamily: 'Arial Black',
-            fontSize: '30px',
-            color: '#f8fafc'
+        
+        const title = this.add.text(width / 2, height / 2 - 150, 'Are you ready?', {
+            fontFamily: 'Georgia',
+            fontSize: '52px',
+            color: '#f8fafc',
+            stroke: '#0f172a',
+            strokeThickness: 6
         }).setOrigin(0.5);
 
-        const subtitle = this.add.text(0, -panelHeight / 2 + 96, 'Trả lời đúng để nhân vật nhảy tới lá tiếp theo', {
-            fontFamily: 'Arial',
-            fontSize: '20px',
-            color: '#cbd5f5',
-            align: 'center',
-            wordWrap: { width: panelWidth - 80, useAdvancedWrap: true }
-        }).setOrigin(0.5, 0);
+        const glow = this.add.text(width / 2, height / 2 - 150, 'Are you ready?', {
+            fontFamily: 'Georgia',
+            fontSize: '52px',
+            color: '#22c55e',
+            alpha: 0.5
+        }).setOrigin(0.5);
 
-        const button = this.createStartButton(0, panelHeight / 2 - 70);
+        const button = this.createStartButton(width / 2, height / 2 + 40);
 
-        panelContainer.add([panelShadow, panelBg, title, subtitle, button]);
-
-        container.add([overlay, panelContainer]);
+        container.add([overlay, glow, title, button]);
         container.setVisible(false);
-        panelContainer.setScale(0.96);
 
         this.startModal = container;
-        this.startModal.setData('panel', panelContainer);
         if (this.uiRoot) this.uiRoot.add(container);
     }
 
@@ -364,7 +371,7 @@ export class Game extends Scene
         panelShadow.fillRoundedRect(-panelWidth / 2 + 6, -panelHeight / 2 + 10, panelWidth, panelHeight, 24);
 
         const panelBg = this.add.graphics();
-        panelBg.fillStyle(0x0b1220, 1);
+        panelBg.fillStyle(0x22c55e, 1);
         panelBg.fillRoundedRect(-panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight, 24);
         panelBg.lineStyle(3, 0xffffff, 0.6);
         panelBg.strokeRoundedRect(-panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight, 24);
@@ -383,7 +390,25 @@ export class Game extends Scene
             wordWrap: { width: panelWidth - 80, useAdvancedWrap: true }
         }).setOrigin(0.5, 0);
 
-        panelContainer.add([panelShadow, panelBg, title, subtitle]);
+        this.endModalScoreText = this.add.text(0, 10, 'Điểm: 0', {
+            fontFamily: 'Arial Black',
+            fontSize: '26px',
+            color: '#fef3c7',
+            stroke: '#7c2d12',
+            strokeThickness: 3
+        }).setOrigin(0.5);
+
+        this.endModalTimeText = this.add.text(0, 50, 'Thời gian: 00:00', {
+            fontFamily: 'Arial Black',
+            fontSize: '22px',
+            color: '#fef3c7',
+            stroke: '#7c2d12',
+            strokeThickness: 3
+        }).setOrigin(0.5);
+
+        const restartButton = this.createRestartButton(0, panelHeight / 2 - 70);
+
+        panelContainer.add([panelShadow, panelBg, title, subtitle, this.endModalScoreText, this.endModalTimeText, restartButton]);
 
         container.add([overlay, panelContainer]);
         container.setVisible(false);
@@ -410,7 +435,7 @@ export class Game extends Scene
         panelShadow.fillRoundedRect(-panelWidth / 2 + 6, -panelHeight / 2 + 10, panelWidth, panelHeight, 24);
 
         const panelBg = this.add.graphics();
-        panelBg.fillStyle(0x0b1220, 1);
+        panelBg.fillStyle(0x22c55e, 1);
         panelBg.fillRoundedRect(-panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight, 24);
         panelBg.lineStyle(3, 0xffffff, 0.6);
         panelBg.strokeRoundedRect(-panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight, 24);
@@ -429,7 +454,9 @@ export class Game extends Scene
             wordWrap: { width: panelWidth - 80, useAdvancedWrap: true }
         }).setOrigin(0.5, 0);
 
-        panelContainer.add([panelShadow, panelBg, title, subtitle]);
+        const restartButton = this.createRestartButton(0, panelHeight / 2 - 70);
+
+        panelContainer.add([panelShadow, panelBg, title, subtitle, restartButton]);
 
         container.add([overlay, panelContainer]);
         container.setVisible(false);
@@ -439,7 +466,7 @@ export class Game extends Scene
         if (this.uiRoot) this.uiRoot.add(container);
     }
 
-    private createStartButton(x: number, y: number): Phaser.GameObjects.Container {
+    private createRestartButton(x: number, y: number): Phaser.GameObjects.Container {
         const container = this.add.container(x, y).setScrollFactor(0);
         const width = 260;
         const height = 64;
@@ -450,38 +477,75 @@ export class Game extends Scene
         shadow.fillRoundedRect(-width / 2 + 4, -height / 2 + 6, width, height, radius);
 
         const bg = this.add.graphics();
-        const redraw = (hover: boolean) => {
+        const redraw = () => {
             bg.clear();
-            bg.fillStyle(hover ? 0x22c55e : 0x16a34a, 1);
+            bg.fillStyle(0x22c55e, 1);
             bg.fillRoundedRect(-width / 2, -height / 2, width, height, radius);
-            bg.lineStyle(2, 0xffffff, hover ? 0.9 : 0.7);
+            bg.lineStyle(2, 0xffffff, 0.9);
             bg.strokeRoundedRect(-width / 2, -height / 2, width, height, radius);
         };
-        redraw(false);
+        redraw();
 
-        const text = this.add.text(0, 0, 'START', {
+        const text = this.add.text(0, 0, 'CHƠI LẠI', {
             fontFamily: 'Arial Black',
-            fontSize: '26px',
+            fontSize: '24px',
             color: '#ffffff'
         }).setOrigin(0.5);
 
-        const zone = this.add.zone(0, 0, width, height).setScrollFactor(0).setInteractive({ useHandCursor: true });
-        zone.on('pointerover', () => {
-            redraw(true);
-            this.tweens.add({ targets: container, scale: 1.04, duration: 120, ease: 'Sine.easeOut' });
-        });
-        zone.on('pointerout', () => {
-            redraw(false);
-            this.tweens.add({ targets: container, scale: 1, duration: 120, ease: 'Sine.easeOut' });
-        });
-        zone.on('pointerdown', () => {
-            if (!this.startModalOpen) return;
-            this.closeStartModal();
-            this.openQuizModal();
+        container.add([shadow, bg, text]);
+        container.setSize(width, height);
+        container.setInteractive(new Phaser.Geom.Rectangle(-width / 2, -height / 2, width, height), Phaser.Geom.Rectangle.Contains);
+        container.on('pointerdown', () => {
+            this.restartRun();
         });
 
-        container.add([shadow, bg, text, zone]);
-        container.setSize(width, height);
+        return container;
+    }
+
+    private createStartButton(x: number, y: number): Phaser.GameObjects.Container {
+        const container = this.add.container(x, y).setScrollFactor(0);
+        
+        const bg = this.add.rectangle(0, 0, 240, 80, 0xfbbf24)
+            .setStrokeStyle(4, 0xffffff)
+            .setFillStyle(0x22c55e);
+            
+        const text = this.add.text(0, 0, 'START', {
+            fontFamily: 'Arial Black', fontSize: '26px', color: '#ffffff'
+        }).setOrigin(0.5);
+
+        container.add([bg, text]);
+        container.setSize(240, 80);
+
+        const onPress = () => {
+            if (!this.startModalOpen) return;
+            bg.setFillStyle(0x16a34a);
+            this.closeStartModal();
+            this.openQuizModal();
+        };
+
+        const onRelease = () => {
+            bg.setFillStyle(0x22c55e);
+        };
+
+        bg.setInteractive({ useHandCursor: true });
+        text.setInteractive({ useHandCursor: true });
+
+        bg.on('pointerdown', onPress);
+        text.on('pointerdown', onPress);
+
+        bg.on('pointerup', onRelease);
+        text.on('pointerup', onRelease);
+
+        bg.on('pointerout', onRelease);
+        text.on('pointerout', onRelease);
+
+        this.tweens.add({
+            targets: container,
+            scale: 1.05,
+            duration: 800,
+            yoyo: true,
+            repeat: -1
+        });
 
         return container;
     }
@@ -493,19 +557,11 @@ export class Game extends Scene
 
         this.startModal.setVisible(true);
         this.startModal.setAlpha(0);
-        const panel = this.startModal.getData('panel') as Phaser.GameObjects.Container;
-        panel.setScale(0.96);
 
         this.tweens.add({
             targets: this.startModal,
             alpha: 1,
             duration: 180
-        });
-        this.tweens.add({
-            targets: panel,
-            scale: 1,
-            duration: 220,
-            ease: 'Back.easeOut'
         });
     }
 
@@ -520,39 +576,50 @@ export class Game extends Scene
         const label = ['A', 'B', 'C', 'D'][index];
         const container = this.add.container(x, y);
 
-        const width = 600;
-        const height = 58;
-        const radius = 14;
+        const width = 660;
+        const height = 56;
+        const radius = 16;
+        const palette = [0xe53935, 0x1e88e5, 0xfbc02d, 0x43a047];
+        const hoverPalette = [0xef5350, 0x42a5f5, 0xffd54f, 0x66bb6a];
+        const baseColor = palette[index % palette.length];
+        const hoverColor = hoverPalette[index % hoverPalette.length];
+
+        const glow = this.add.graphics();
+        glow.fillStyle(baseColor, 0.18);
+        glow.fillRoundedRect(-width / 2 + 6, -height / 2 + 10, width, height, radius + 4);
 
         const shadow = this.add.graphics();
-        shadow.fillStyle(0x000000, 0.25);
+        shadow.fillStyle(0x000000, 0.18);
         shadow.fillRoundedRect(-width / 2 + 4, -height / 2 + 6, width, height, radius);
 
         const bg = this.add.graphics();
         const badge = this.add.graphics();
 
-        const labelText = this.add.text(-width / 2 + 34, 0, label, {
+        const labelText = this.add.text(-width / 2 + 32, 0, label, {
             fontFamily: 'Arial Black',
-            fontSize: '20px',
-            color: '#0b1220'
+            fontSize: '16px',
+            color: '#111827'
         }).setOrigin(0.5);
 
-        const text = this.add.text(-width / 2 + 74, 0, `${label}. ...`, {
+        const text = this.add.text(-width / 2 + 70, 0, `${label}. ...`, {
             fontFamily: 'Arial',
-            fontSize: '22px',
+            fontSize: '21px',
             color: '#f8fafc'
         }).setOrigin(0, 0.5);
 
-        const zone = this.add.zone(0, 0, width, height).setInteractive({ useHandCursor: true });
+        const hitPad = 12;
+        const zone = this.add.zone(0, 0, width + hitPad * 2, height + hitPad * 2)
+            .setInteractive({ useHandCursor: true });
 
         const redraw = (state: 'normal' | 'hover' | 'correct' | 'wrong') => {
-            let fill = 0x1e293b;
+            let fill = baseColor;
             let stroke = 0xffffff;
-            let badgeFill = 0xfbbf24;
+            let badgeFill = 0xffffff;
 
             if (state === 'hover') {
-                fill = 0x243b53;
-                stroke = 0xf8fafc;
+                fill = hoverColor;
+                stroke = 0xffffff;
+                badgeFill = 0xffffff;
             } else if (state === 'correct') {
                 fill = 0x16a34a;
                 stroke = 0x86efac;
@@ -571,12 +638,13 @@ export class Game extends Scene
 
             badge.clear();
             badge.fillStyle(badgeFill, 1);
-            badge.fillRoundedRect(-width / 2 + 14, -height / 2 + 8, 40, height - 16, 10);
+            badge.fillRoundedRect(-width / 2 + 12, -height / 2 + 9, 30, height - 18, 10);
         };
 
         redraw('normal');
+        glow.setVisible(false);
 
-        container.add([shadow, bg, badge, labelText, text, zone]);
+        container.add([glow, shadow, bg, badge, labelText, text, zone]);
         container.setSize(width, height);
 
         const onPress = () => {
@@ -584,12 +652,97 @@ export class Game extends Scene
             this.handleQuizAnswer(index);
         };
 
-        zone.on('pointerdown', onPress);
+        zone.on('pointerdown', () => {
+            if (!this.quizOpen || this.quizLocked) return;
+            redraw('hover');
+            glow.setVisible(true);
+            this.tweens.add({ targets: container, scale: 0.96, duration: 60, ease: 'Sine.easeOut' });
+            onPress();
+        });
+        zone.on('pointerover', () => {
+            if (this.quizOpen && !this.quizLocked) {
+                redraw('hover');
+                glow.setVisible(true);
+                this.tweens.add({ targets: container, scale: 1.02, duration: 120, ease: 'Sine.easeOut' });
+            }
+        });
+        zone.on('pointerout', () => {
+            if (this.quizOpen && !this.quizLocked) {
+                redraw('normal');
+                glow.setVisible(false);
+                this.tweens.add({ targets: container, scale: 1, duration: 120, ease: 'Sine.easeOut' });
+            }
+        });
+        zone.on('pointerup', () => {
+            if (this.quizOpen && !this.quizLocked) {
+                redraw('normal');
+                glow.setVisible(false);
+                this.tweens.add({ targets: container, scale: 1, duration: 80, ease: 'Sine.easeOut' });
+            }
+        });
 
         container.setData('redraw', redraw);
         container.setData('text', text);
+        container.setData('glow', glow);
 
         return container;
+    }
+
+    private layoutQuizPanel(): void {
+        if (!this.quizPanelContainer) return;
+
+        const panelWidth = this.quizPanelWidth || Math.min(820, this.scale.width - 40);
+        const paddingTop = 10;
+        const headerHeight = 18;
+        const questionGap = 6;
+        const optionsTopGap = 16;
+        const optionGapY = 16;
+        const bottomPad = 16;
+        const optionHeight = this.quizOptionButtons[0]?.height ?? 52;
+
+        const questionHeight = this.quizQuestionText.height;
+        const panelHeight = paddingTop + headerHeight + questionGap + questionHeight +
+            optionsTopGap + (optionHeight * 4) + (optionGapY * 3) + bottomPad;
+
+        this.quizPanelHeight = panelHeight;
+
+        const { width, height } = this.scale;
+        this.quizPanelContainer.setScale(this.uiScale);
+        this.quizPanelContainer.setPosition(width / 2, height - (panelHeight * this.uiScale) / 2 - this.safeInsetBottom);
+
+        // Redraw panel layers to fit new height
+        this.quizPanelShadow.clear();
+        this.quizPanelShadow.fillStyle(0x000000, 0.35);
+        this.quizPanelShadow.fillRoundedRect(-panelWidth / 2 + 8, -panelHeight / 2 + 14, panelWidth, panelHeight, 28);
+
+        this.quizPanelBg.clear();
+        this.quizPanelBg.fillStyle(0x111827, 0.95);
+        this.quizPanelBg.fillRoundedRect(-panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight, 28);
+        this.quizPanelBg.lineStyle(2, 0xffffff, 0.4);
+        this.quizPanelBg.strokeRoundedRect(-panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight, 28);
+
+        this.quizPanelGlow.clear();
+        this.quizPanelGlow.fillStyle(0x1f2937, 0.9);
+        this.quizPanelGlow.fillRoundedRect(-panelWidth / 2 + 10, -panelHeight / 2 + 10, panelWidth - 20, panelHeight - 20, 20);
+
+        this.quizIndexText.setPosition(0, -panelHeight / 2 + paddingTop + headerHeight / 2);
+
+        // Auto-reduce question font for mobile if needed
+        const baseSize = 30;
+        this.quizQuestionText.setFontSize(baseSize);
+        this.quizQuestionText.setPosition(0, this.quizIndexText.y + headerHeight / 2 + questionGap);
+        const maxQuestionHeight = 70;
+        if (this.quizQuestionText.height > maxQuestionHeight) {
+            this.quizQuestionText.setFontSize(26);
+        }
+        if (this.quizQuestionText.height > maxQuestionHeight) {
+            this.quizQuestionText.setFontSize(24);
+        }
+
+        const startY = this.quizQuestionText.y + questionHeight + optionsTopGap + optionHeight / 2;
+        this.quizOptionButtons.forEach((btn, i) => {
+            btn.setPosition(0, startY + i * (optionHeight + optionGapY));
+        });
     }
 
     private openQuizModal(): void {
@@ -602,18 +755,35 @@ export class Game extends Scene
 
         const question = this.getMockQuestions()[this.quizCurrentIndex % this.getMockQuestions().length];
         this.quizQuestionText.setText(question.question);
+        if (this.quizIndexText) {
+            const total = this.getMockQuestions().length;
+            this.quizIndexText.setText(`Câu ${this.quizCurrentIndex + 1}/${total}`);
+        }
 
         this.quizOptionButtons.forEach((btn, i) => {
             const redraw = btn.getData('redraw') as (state: 'normal' | 'hover' | 'correct' | 'wrong') => void;
             const text = btn.getData('text') as Phaser.GameObjects.Text;
+            const glow = btn.getData('glow') as Phaser.GameObjects.Graphics | undefined;
             redraw('normal');
             text.setText(`${['A', 'B', 'C', 'D'][i]}. ${question.options[i]}`);
+            glow?.setVisible(false);
+
+            // Auto-shrink long answers for mobile
+            if (text.width > 520) {
+                text.setFontSize(19);
+            }
+            if (text.width > 560) {
+                text.setFontSize(18);
+            }
         });
+
+        this.layoutQuizPanel();
 
         this.quizModal.setVisible(true);
         this.quizModal.setAlpha(0);
         const panel = this.quizModal.getData('panel') as Phaser.GameObjects.Container;
         panel.setScale(0.96);
+        panel.y += 18;
         this.tweens.add({
             targets: this.quizModal,
             alpha: 1,
@@ -622,6 +792,7 @@ export class Game extends Scene
         this.tweens.add({
             targets: panel,
             scale: 1,
+            y: panel.y - 18,
             duration: 220,
             ease: 'Back.easeOut'
         });
@@ -644,6 +815,9 @@ export class Game extends Scene
         if (isCorrect) {
             this.quizLocked = true;
             redraw('correct');
+            this.tweens.add({ targets: btn, scale: 1.02, duration: 120, yoyo: true, ease: 'Sine.easeOut' });
+            this.updateScore(1);
+            this.speedUpJump();
             this.closeQuizModal();
             await this.handleJump();
             this.quizCurrentIndex += 1;
@@ -653,6 +827,8 @@ export class Game extends Scene
         } else {
             this.quizLocked = true;
             redraw('wrong');
+            this.tweens.add({ targets: btn, scale: 1.02, duration: 120, yoyo: true, ease: 'Sine.easeOut' });
+            this.updateScore(-1);
             this.showPlayerState('incorrect');
             const panel = this.quizModal.getData('panel') as Phaser.GameObjects.Container;
             const startX = panel.x;
@@ -704,10 +880,6 @@ export class Game extends Scene
         }
         const targetPos = this.getLeafPosition(nextIndex);
 
-        // Visual feedback
-        this.score += 10;
-        this.scoreText.setText(`Score: ${this.score}`);
-
         // Stop idle animation during jump
         this.player.stopIdle();
 
@@ -720,7 +892,7 @@ export class Game extends Scene
         });
 
         // Perform jump using EmoteCharacter
-        await this.player.jumpTo(targetPos.x, targetPos.y, 900);
+        await this.player.jumpTo(targetPos.x, targetPos.y, this.jumpDurationMs);
 
         // Update state after jump completes
         this.currentLeafIndex = nextIndex;
@@ -740,6 +912,11 @@ export class Game extends Scene
             this.quizOpen = false;
             this.quizLocked = false;
             this.stopTimer();
+            this.timerOverlay.setVisible(false);
+            if (this.totalTimeMs > 0) {
+                this.updateScore(3);
+            }
+            this.updateEndTimeText();
             this.time.delayedCall(400, () => {
                 this.openEndModal();
             });
@@ -801,6 +978,7 @@ export class Game extends Scene
         panel.setScale(0.96);
         this.endModal.setVisible(true);
         this.endModal.setAlpha(0);
+        this.launchConfetti();
         this.tweens.add({
             targets: this.endModal,
             alpha: 1,
@@ -811,6 +989,59 @@ export class Game extends Scene
             scale: 1,
             duration: 240,
             ease: 'Back.easeOut'
+        });
+    }
+
+    private launchConfetti(): void {
+        if (this.confettiEmitter) {
+            this.confettiEmitter.destroy();
+        }
+        if (this.confettiBurstEvent) {
+            this.confettiBurstEvent.remove(false);
+            this.confettiBurstEvent = undefined;
+        }
+
+        const { width, height } = this.scale;
+        this.confettiEmitter = this.add.particles(0, 0, 'tile-flower', {
+            speed: { min: 90, max: 170 },
+            angle: { min: 0, max: 360 },
+            rotate: { min: -220, max: 220 },
+            scale: { start: 0.45, end: 0.15 },
+            lifespan: { min: 1400, max: 2200 },
+            quantity: 0,
+            frequency: -1,
+            gravityY: 120,
+            tint: [0xfacc15, 0x22c55e, 0x3b82f6, 0xf97316, 0xef4444, 0xa855f7],
+            blendMode: 'ADD'
+        });
+
+        this.confettiEmitter.setScrollFactor(0);
+        this.confettiEmitter.setDepth(2100);
+        this.uiRoot.add(this.confettiEmitter);
+
+        const burstPositions = [
+            { x: width * 0.25, y: height * 0.18 },
+            { x: width * 0.5, y: height * 0.14 },
+            { x: width * 0.75, y: height * 0.18 }
+        ];
+        let burstIndex = 0;
+
+        this.confettiBurstEvent = this.time.addEvent({
+            delay: 950,
+            repeat: 2,
+            callback: () => {
+                if (!this.confettiEmitter) return;
+                const pos = burstPositions[burstIndex % burstPositions.length];
+                burstIndex += 1;
+                this.confettiEmitter.explode(14, pos.x, pos.y);
+            }
+        });
+
+        this.time.delayedCall(3500, () => {
+            this.confettiEmitter?.destroy();
+            this.confettiEmitter = undefined;
+            this.confettiBurstEvent?.remove(false);
+            this.confettiBurstEvent = undefined;
         });
     }
 
@@ -831,6 +1062,61 @@ export class Game extends Scene
             duration: 240,
             ease: 'Back.easeOut'
         });
+    }
+
+    private closeTimeUpModal(): void {
+        if (!this.timeUpModal) return;
+        this.timeUpModal.setVisible(false);
+    }
+
+    private restartRun(): void {
+        this.gameOver = false;
+        this.gameCompleted = false;
+        this.quizOpen = false;
+        this.quizLocked = false;
+        this.quizCurrentIndex = 0;
+        this.score = 0;
+        this.scoreText.setText('Score: 0');
+        this.jumpDurationMs = 900;
+
+        this.closeTimeUpModal();
+        this.closeQuizModal();
+
+        const startPos = this.getLeafPosition(0);
+        this.player.setPosition(startPos.x, startPos.y);
+        this.player.playIdle();
+
+        this.currentLeafIndex = 0;
+        const nextPos = this.getLeafPosition(this.currentLeafIndex + 1);
+        this.player.flip(nextPos.x > startPos.x);
+
+        this.camera.scrollY = startPos.y - 900;
+
+        this.stopTimer();
+        this.timerOverlay.setVisible(true);
+        this.openStartModal();
+    }
+
+    private updateScore(delta: number): void {
+        this.score += delta;
+        this.scoreText.setText(`Score: ${this.score}`);
+        if (this.endModalScoreText) {
+            this.endModalScoreText.setText(`Điểm: ${this.score}`);
+        }
+    }
+
+    private updateEndTimeText(): void {
+        if (!this.endModalTimeText) return;
+        const elapsedMs = 180000 - this.totalTimeMs;
+        const totalSeconds = Math.max(0, Math.floor(elapsedMs / 1000));
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
+        this.endModalTimeText.setText(`Thời gian: ${pad(minutes)}:${pad(seconds)}`);
+    }
+
+    private speedUpJump(): void {
+        this.jumpDurationMs = Math.max(450, this.jumpDurationMs - 40);
     }
 
     getLeafPosition(index: number) {
