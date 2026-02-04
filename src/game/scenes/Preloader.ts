@@ -134,8 +134,9 @@ export class Preloader extends Scene
 
         // ==================== CHARACTER ASSETS ====================
         this.load.spritesheet('character', 'characters/character animation tran.png', {
-            frameWidth: 557,
-            frameHeight: 1128
+            frameWidth: 515,
+            frameHeight: 1128,
+            margin: 15
         });
         this.load.image('char-jump', 'char-jump.png');
         this.load.image('char-emotes', 'char-emotes.png');
