@@ -10,6 +10,7 @@ export class Game extends Scene
     parallaxLayers: Phaser.GameObjects.Image[];
     uiRoot!: Phaser.GameObjects.Container;
     uiCamera!: Phaser.Cameras.Scene2D.Camera;
+    timerOverlay!: Phaser.GameObjects.Container;
 
     // UI
     jumpButton: Phaser.GameObjects.Container;
@@ -25,6 +26,12 @@ export class Game extends Scene
     startModalOpen: boolean = false;
     endModal!: Phaser.GameObjects.Container;
     gameCompleted: boolean = false;
+    timeUpModal!: Phaser.GameObjects.Container;
+    gameOver: boolean = false;
+    timerText!: Phaser.GameObjects.Text;
+    timerFrame!: Phaser.GameObjects.Graphics;
+    timerEvent!: Phaser.Time.TimerEvent;
+    totalTimeMs: number = 180000;
 
     // Game State
     score: number = 0;
@@ -117,6 +124,22 @@ export class Game extends Scene
         });
         this.uiRoot.add(this.scoreText);
 
+        // Timer (top center overlay, always above modals)
+        this.timerOverlay = this.add.container(0, 0).setScrollFactor(0).setDepth(2000);
+
+        this.timerFrame = this.add.graphics();
+        this.timerFrame.fillStyle(0xdc2626, 1);
+        this.timerFrame.fillRoundedRect(width / 2 - 110, 12, 220, 56, 14);
+        this.timerFrame.lineStyle(3, 0xffffff, 0.95);
+        this.timerFrame.strokeRoundedRect(width / 2 - 110, 12, 220, 56, 14);
+
+        this.timerText = this.add.text(width / 2, 40, '03:00', {
+            fontFamily: 'Arial Black', fontSize: '26px', color: '#ffffff',
+            stroke: '#7f1d1d', strokeThickness: 4
+        }).setOrigin(0.5);
+
+        this.timerOverlay.add([this.timerFrame, this.timerText]);
+
         // Jump Button
         this.jumpButton = this.createJumpButton(width / 2, height - 150);
         this.jumpButton.setScrollFactor(0);
@@ -132,10 +155,13 @@ export class Game extends Scene
         this.openStartModal();
 
         // Ensure only UI camera renders UI
-        this.cameras.main.ignore(this.uiRoot);
+        this.cameras.main.ignore([this.uiRoot, this.timerOverlay]);
 
         // End Modal
         this.createEndModal();
+
+        // Time Up Modal
+        this.createTimeUpModal();
     }
 
     createJumpButton(x: number, y: number) {
@@ -367,6 +393,52 @@ export class Game extends Scene
         if (this.uiRoot) this.uiRoot.add(container);
     }
 
+    private createTimeUpModal(): void {
+        const { width, height } = this.scale;
+
+        const container = this.add.container(0, 0).setScrollFactor(0).setDepth(240);
+
+        const overlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.78)
+            .setOrigin(0, 0);
+
+        const panelWidth = Math.min(640, width - 120);
+        const panelHeight = Math.min(360, height - 220);
+        const panelContainer = this.add.container(width / 2, height / 2).setScrollFactor(0);
+
+        const panelShadow = this.add.graphics();
+        panelShadow.fillStyle(0x000000, 0.35);
+        panelShadow.fillRoundedRect(-panelWidth / 2 + 6, -panelHeight / 2 + 10, panelWidth, panelHeight, 24);
+
+        const panelBg = this.add.graphics();
+        panelBg.fillStyle(0x0b1220, 1);
+        panelBg.fillRoundedRect(-panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight, 24);
+        panelBg.lineStyle(3, 0xffffff, 0.6);
+        panelBg.strokeRoundedRect(-panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight, 24);
+
+        const title = this.add.text(0, -panelHeight / 2 + 48, 'Hết giờ', {
+            fontFamily: 'Arial Black',
+            fontSize: '32px',
+            color: '#f8fafc'
+        }).setOrigin(0.5);
+
+        const subtitle = this.add.text(0, -panelHeight / 2 + 100, 'Bạn chưa kịp hoàn thành đường đua', {
+            fontFamily: 'Arial',
+            fontSize: '22px',
+            color: '#cbd5f5',
+            align: 'center',
+            wordWrap: { width: panelWidth - 80, useAdvancedWrap: true }
+        }).setOrigin(0.5, 0);
+
+        panelContainer.add([panelShadow, panelBg, title, subtitle]);
+
+        container.add([overlay, panelContainer]);
+        container.setVisible(false);
+
+        this.timeUpModal = container;
+        this.timeUpModal.setData('panel', panelContainer);
+        if (this.uiRoot) this.uiRoot.add(container);
+    }
+
     private createStartButton(x: number, y: number): Phaser.GameObjects.Container {
         const container = this.add.container(x, y).setScrollFactor(0);
         const width = 260;
@@ -417,6 +489,7 @@ export class Game extends Scene
     private openStartModal(): void {
         this.startModalOpen = true;
         this.jumpButton.setAlpha(0.4);
+        this.stopTimer();
 
         this.startModal.setVisible(true);
         this.startModal.setAlpha(0);
@@ -439,6 +512,7 @@ export class Game extends Scene
     private closeStartModal(): void {
         this.startModalOpen = false;
         this.jumpButton.setAlpha(1);
+        this.startTimer();
         this.startModal.setVisible(false);
     }
 
@@ -519,6 +593,7 @@ export class Game extends Scene
     }
 
     private openQuizModal(): void {
+        if (this.gameOver) return;
         if (this.gameCompleted) return;
         if (this.player.isJumping()) return;
         this.quizOpen = true;
@@ -619,6 +694,7 @@ export class Game extends Scene
 
     async handleJump() {
         if (this.player.isJumping()) return;
+        if (this.gameOver) return;
 
         const nextIndex = this.currentLeafIndex + 1;
         const maxIndex = this.leafPath.length > 0 ? this.leafPath.length - 1 : Number.POSITIVE_INFINITY;
@@ -663,10 +739,60 @@ export class Game extends Scene
             this.jumpButton.setAlpha(0.4);
             this.quizOpen = false;
             this.quizLocked = false;
+            this.stopTimer();
             this.time.delayedCall(400, () => {
                 this.openEndModal();
             });
         }
+    }
+
+    private startTimer(): void {
+        if (this.timerEvent) {
+            this.timerEvent.remove(false);
+        }
+
+        this.totalTimeMs = 180000;
+        this.updateTimerText(this.totalTimeMs);
+
+        this.timerEvent = this.time.addEvent({
+            delay: 1000,
+            loop: true,
+            callback: () => {
+                if (this.gameCompleted || this.gameOver) return;
+                this.totalTimeMs -= 1000;
+                this.updateTimerText(this.totalTimeMs);
+                if (this.totalTimeMs <= 0) {
+                    this.totalTimeMs = 0;
+                    this.updateTimerText(this.totalTimeMs);
+                    this.handleTimeUp();
+                }
+            }
+        });
+    }
+
+    private stopTimer(): void {
+        if (this.timerEvent) {
+            this.timerEvent.remove(false);
+        }
+    }
+
+    private updateTimerText(ms: number): void {
+        const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
+        const text = `${pad(minutes)}:${pad(seconds)}`;
+        this.timerText.setText(text);
+    }
+
+    private handleTimeUp(): void {
+        if (this.gameOver || this.gameCompleted) return;
+        this.gameOver = true;
+        this.quizOpen = false;
+        this.quizLocked = false;
+        this.jumpButton.setAlpha(0.4);
+        this.closeQuizModal();
+        this.openTimeUpModal();
     }
 
     private openEndModal(): void {
@@ -677,6 +803,25 @@ export class Game extends Scene
         this.endModal.setAlpha(0);
         this.tweens.add({
             targets: this.endModal,
+            alpha: 1,
+            duration: 200
+        });
+        this.tweens.add({
+            targets: panel,
+            scale: 1,
+            duration: 240,
+            ease: 'Back.easeOut'
+        });
+    }
+
+    private openTimeUpModal(): void {
+        if (!this.timeUpModal) return;
+        const panel = this.timeUpModal.getData('panel') as Phaser.GameObjects.Container;
+        panel.setScale(0.96);
+        this.timeUpModal.setVisible(true);
+        this.timeUpModal.setAlpha(0);
+        this.tweens.add({
+            targets: this.timeUpModal,
             alpha: 1,
             duration: 200
         });
