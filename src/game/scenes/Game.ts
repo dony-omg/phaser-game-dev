@@ -42,7 +42,6 @@ export class Game extends Scene
     timeUpModal!: Phaser.GameObjects.Container;
     gameOver: boolean = false;
     timerText!: Phaser.GameObjects.Text;
-    timerFrame!: Phaser.GameObjects.Graphics;
     timerEvent!: Phaser.Time.TimerEvent;
     totalTimeMs: number = 180000;
     jumpDurationMs: number = 900;
@@ -138,21 +137,15 @@ export class Game extends Scene
         });
         this.uiRoot.add(this.scoreText);
 
-        // Timer (top center overlay, always above modals)
+        // Timer (HUD header)
         this.timerOverlay = this.add.container(0, 0).setScrollFactor(0).setDepth(2000);
 
-        this.timerFrame = this.add.graphics();
-        this.timerFrame.fillStyle(0xdc2626, 1);
-        this.timerFrame.fillRoundedRect(width / 2 - 110, 12, 220, 56, 14);
-        this.timerFrame.lineStyle(3, 0xffffff, 0.95);
-        this.timerFrame.strokeRoundedRect(width / 2 - 110, 12, 220, 56, 14);
+        this.timerText = this.add.text(width - 20, 40, '03:00', {
+            fontFamily: 'Arial Black', fontSize: '28px', color: '#f8fafc',
+            stroke: '#000000', strokeThickness: 4
+        }).setOrigin(1, 0.5);
 
-        this.timerText = this.add.text(width / 2, 40, '03:00', {
-            fontFamily: 'Arial Black', fontSize: '26px', color: '#ffffff',
-            stroke: '#7f1d1d', strokeThickness: 4
-        }).setOrigin(0.5);
-
-        this.timerOverlay.add([this.timerFrame, this.timerText]);
+        this.timerOverlay.add([this.timerText]);
         this.uiRoot.add(this.timerOverlay);
 
         // Jump Button
