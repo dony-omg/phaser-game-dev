@@ -496,40 +496,61 @@ export class Game extends Scene
 
         const container = this.add.container(0, 0).setScrollFactor(0).setDepth(240);
 
-        const overlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.78)
+        const overlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.65)
             .setOrigin(0, 0);
 
-        const panelWidth = Math.min(640, width - 120);
-        const panelHeight = Math.min(360, height - 220);
+        const panelWidth = Math.min(620, width - 120);
+        const panelHeight = Math.min(340, height - 220);
         const panelContainer = this.add.container(width / 2, height / 2).setScrollFactor(0);
 
         const panelShadow = this.add.graphics();
-        panelShadow.fillStyle(0x000000, 0.35);
-        panelShadow.fillRoundedRect(-panelWidth / 2 + 6, -panelHeight / 2 + 10, panelWidth, panelHeight, 24);
+        panelShadow.fillStyle(0x000000, 0.45);
+        panelShadow.fillRoundedRect(-panelWidth / 2 + 10, -panelHeight / 2 + 14, panelWidth, panelHeight, 26);
+        panelShadow.fillStyle(0x000000, 0.2);
+        panelShadow.fillRoundedRect(-panelWidth / 2 + 6, -panelHeight / 2 + 10, panelWidth, panelHeight, 26);
 
         const panelBg = this.add.graphics();
-        panelBg.fillStyle(0x22c55e, 1);
+        panelBg.fillStyle(0x0f172a, 0.98);
         panelBg.fillRoundedRect(-panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight, 24);
-        panelBg.lineStyle(3, 0xffffff, 0.6);
+        panelBg.lineStyle(2, 0xffffff, 0.18);
         panelBg.strokeRoundedRect(-panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight, 24);
 
-        const title = this.add.text(0, -panelHeight / 2 + 48, 'Hết giờ', {
+        const accent = this.add.graphics();
+        accent.fillStyle(0x22c55e, 1);
+        accent.fillRoundedRect(-120, -panelHeight / 2 + 24, 240, 46, 22);
+
+        const divider = this.add.graphics();
+        divider.lineStyle(2, 0xffffff, 0.12);
+        divider.strokeLineShape(new Phaser.Geom.Line(
+            -panelWidth / 2 + 40,
+            -panelHeight / 2 + 92,
+            panelWidth / 2 - 40,
+            -panelHeight / 2 + 92
+        ));
+
+        const cornerGlow = this.add.graphics();
+        cornerGlow.fillStyle(0x22c55e, 0.12);
+        cornerGlow.fillCircle(panelWidth / 2 - 40, -panelHeight / 2 + 40, 46);
+        cornerGlow.fillStyle(0xffffff, 0.06);
+        cornerGlow.fillCircle(-panelWidth / 2 + 50, panelHeight / 2 - 40, 54);
+
+        const title = this.add.text(0, -panelHeight / 2 + 47, 'Hết giờ', {
             fontFamily: 'Arial Black',
-            fontSize: '32px',
+            fontSize: '30px',
             color: '#f8fafc'
         }).setOrigin(0.5);
 
-        const subtitle = this.add.text(0, -panelHeight / 2 + 100, 'Bạn chưa kịp hoàn thành đường đua', {
+        const subtitle = this.add.text(0, -panelHeight / 2 + 112, 'Bạn chưa kịp hoàn thành đường đua', {
             fontFamily: 'Arial',
             fontSize: '22px',
-            color: '#cbd5f5',
+            color: '#e2e8f0',
             align: 'center',
             wordWrap: { width: panelWidth - 80, useAdvancedWrap: true }
         }).setOrigin(0.5, 0);
 
         const restartButton = this.createRestartButton(0, panelHeight / 2 - 70);
 
-        panelContainer.add([panelShadow, panelBg, title, subtitle, restartButton]);
+        panelContainer.add([panelShadow, panelBg, cornerGlow, accent, divider, title, subtitle, restartButton]);
 
         container.add([overlay, panelContainer]);
         container.setVisible(false);
@@ -546,18 +567,20 @@ export class Game extends Scene
         const radius = 16;
 
         const shadow = this.add.graphics();
-        shadow.fillStyle(0x000000, 0.3);
-        shadow.fillRoundedRect(-width / 2 + 4, -height / 2 + 6, width, height, radius);
+        shadow.fillStyle(0x000000, 0.35);
+        shadow.fillRoundedRect(-width / 2 + 5, -height / 2 + 7, width, height, radius);
 
         const bg = this.add.graphics();
-        const redraw = () => {
+        const draw = (fill: number, stroke: number, glowAlpha: number) => {
             bg.clear();
-            bg.fillStyle(0x22c55e, 1);
+            bg.fillStyle(fill, 1);
             bg.fillRoundedRect(-width / 2, -height / 2, width, height, radius);
-            bg.lineStyle(2, 0xffffff, 0.9);
+            bg.lineStyle(2, stroke, 0.9);
             bg.strokeRoundedRect(-width / 2, -height / 2, width, height, radius);
+            bg.fillStyle(0xffffff, glowAlpha);
+            bg.fillRoundedRect(-width / 2 + 6, -height / 2 + 6, width - 12, 18, 12);
         };
-        redraw();
+        draw(0x22c55e, 0xffffff, 0.18);
 
         const text = this.add.text(0, 0, 'CHƠI LẠI', {
             fontFamily: 'Arial Black',
@@ -568,8 +591,22 @@ export class Game extends Scene
         container.add([shadow, bg, text]);
         container.setSize(width, height);
         container.setInteractive(new Phaser.Geom.Rectangle(-width / 2, -height / 2, width, height), Phaser.Geom.Rectangle.Contains);
+        container.on('pointerover', () => {
+            draw(0x16a34a, 0xffffff, 0.2);
+            this.tweens.add({ targets: container, scale: 1.02, duration: 120, ease: 'Sine.easeOut' });
+        });
+        container.on('pointerout', () => {
+            draw(0x22c55e, 0xffffff, 0.18);
+            this.tweens.add({ targets: container, scale: 1, duration: 120, ease: 'Sine.easeOut' });
+        });
         container.on('pointerdown', () => {
+            draw(0x15803d, 0xe2e8f0, 0.1);
+            this.tweens.add({ targets: container, scale: 0.98, duration: 80, ease: 'Sine.easeOut' });
             this.restartRun();
+        });
+        container.on('pointerup', () => {
+            draw(0x16a34a, 0xffffff, 0.2);
+            this.tweens.add({ targets: container, scale: 1.02, duration: 80, ease: 'Sine.easeOut' });
         });
 
         return container;
