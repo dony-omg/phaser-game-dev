@@ -254,8 +254,10 @@ export class Game extends Scene
 
     createJumpButton(x: number, y: number) {
         const container = this.add.container(x, y);
+        const width = 300;
+        const height = 100;
         
-        const bg = this.add.rectangle(0, 0, 300, 100, 0xfbbf24)
+        const bg = this.add.rectangle(0, 0, width, height, 0xfbbf24)
             .setStrokeStyle(4, 0xffffff)
             .setFillStyle(0x22c55e);
             
@@ -264,7 +266,7 @@ export class Game extends Scene
         }).setOrigin(0.5);
 
         container.add([bg, text]);
-        container.setSize(300, 100);
+        container.setSize(width, height);
 
         this.jumpButtonBg = bg;
 
@@ -278,17 +280,13 @@ export class Game extends Scene
             bg.setFillStyle(0x22c55e);
         };
 
-        bg.setInteractive({ useHandCursor: true });
-        text.setInteractive({ useHandCursor: true });
+        container.setInteractive(new Phaser.Geom.Rectangle(-width / 2, -height / 2, width, height), Phaser.Geom.Rectangle.Contains);
 
-        bg.on('pointerdown', onPress);
-        text.on('pointerdown', onPress);
+        container.on('pointerdown', onPress);
 
-        bg.on('pointerup', onRelease);
-        text.on('pointerup', onRelease);
+        container.on('pointerup', onRelease);
 
-        bg.on('pointerout', onRelease);
-        text.on('pointerout', onRelease);
+        container.on('pointerout', onRelease);
 
         // Add simple pulse tween
         this.tweens.add({
@@ -370,27 +368,35 @@ export class Game extends Scene
 
         const container = this.add.container(0, 0).setScrollFactor(0).setDepth(220);
 
-        const overlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.6)
+        const overlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.12)
             .setOrigin(0, 0);
-        
-        const title = this.add.text(width / 2, height / 2 - 150, 'Are you ready?', {
-            fontFamily: 'Georgia',
-            fontSize: '52px',
-            color: '#f8fafc',
-            stroke: '#0f172a',
-            strokeThickness: 6
+
+        const panelWidth = Math.min(520, width - 80);
+        const panelHeight = 160;
+        const panelContainer = this.add.container(width / 2, Math.round(height * 0.58)).setScrollFactor(0);
+
+        const panelShadow = this.add.graphics();
+        panelShadow.fillStyle(0x000000, 0.15);
+        panelShadow.fillRoundedRect(-panelWidth / 2 + 6, -panelHeight / 2 + 10, panelWidth, panelHeight, 26);
+
+        const panelBg = this.add.graphics();
+        panelBg.fillStyle(0xffffff, 0.85);
+        panelBg.fillRoundedRect(-panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight, 24);
+        panelBg.lineStyle(2, 0x93c5fd, 0.45);
+        panelBg.strokeRoundedRect(-panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight, 24);
+
+        const title = this.add.text(0, -26, 'Help the robot cross the river.', {
+            fontFamily: 'Arial Black',
+            fontSize: '22px',
+            color: '#0f172a',
+            align: 'center',
+            wordWrap: { width: panelWidth - 60, useAdvancedWrap: true }
         }).setOrigin(0.5);
 
-        const glow = this.add.text(width / 2, height / 2 - 150, 'Are you ready?', {
-            fontFamily: 'Georgia',
-            fontSize: '52px',
-            color: '#22c55e',
-            alpha: 0.5
-        }).setOrigin(0.5);
+        const button = this.createStartButton(0, 42);
 
-        const button = this.createStartButton(width / 2, height / 2 + 40);
-
-        container.add([overlay, glow, title, button]);
+        panelContainer.add([panelShadow, panelBg, title, button]);
+        container.add([overlay, panelContainer]);
         container.setVisible(false);
 
         this.startModal = container;
@@ -571,61 +577,32 @@ export class Game extends Scene
 
         const container = this.add.container(0, 0).setScrollFactor(0).setDepth(240);
 
-        const overlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.65)
+        const overlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.12)
             .setOrigin(0, 0);
 
-        const panelWidth = Math.min(620, width - 120);
-        const panelHeight = Math.min(340, height - 220);
-        const panelContainer = this.add.container(width / 2, height / 2).setScrollFactor(0);
+        const panelWidth = Math.min(520, width - 80);
+        const panelHeight = 160;
+        const panelContainer = this.add.container(width / 2, Math.round(height * 0.56)).setScrollFactor(0);
 
         const panelShadow = this.add.graphics();
-        panelShadow.fillStyle(0x000000, 0.45);
-        panelShadow.fillRoundedRect(-panelWidth / 2 + 10, -panelHeight / 2 + 14, panelWidth, panelHeight, 26);
-        panelShadow.fillStyle(0x000000, 0.2);
+        panelShadow.fillStyle(0x000000, 0.15);
         panelShadow.fillRoundedRect(-panelWidth / 2 + 6, -panelHeight / 2 + 10, panelWidth, panelHeight, 26);
 
         const panelBg = this.add.graphics();
-        panelBg.fillStyle(0x0f172a, 0.98);
+        panelBg.fillStyle(0xffffff, 0.85);
         panelBg.fillRoundedRect(-panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight, 24);
-        panelBg.lineStyle(2, 0xffffff, 0.18);
+        panelBg.lineStyle(2, 0x93c5fd, 0.45);
         panelBg.strokeRoundedRect(-panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight, 24);
 
-        const accent = this.add.graphics();
-        accent.fillStyle(0x22c55e, 1);
-        accent.fillRoundedRect(-120, -panelHeight / 2 + 24, 240, 46, 22);
-
-        const divider = this.add.graphics();
-        divider.lineStyle(2, 0xffffff, 0.12);
-        divider.strokeLineShape(new Phaser.Geom.Line(
-            -panelWidth / 2 + 40,
-            -panelHeight / 2 + 92,
-            panelWidth / 2 - 40,
-            -panelHeight / 2 + 92
-        ));
-
-        const cornerGlow = this.add.graphics();
-        cornerGlow.fillStyle(0x22c55e, 0.12);
-        cornerGlow.fillCircle(panelWidth / 2 - 40, -panelHeight / 2 + 40, 46);
-        cornerGlow.fillStyle(0xffffff, 0.06);
-        cornerGlow.fillCircle(-panelWidth / 2 + 50, panelHeight / 2 - 40, 54);
-
-        const title = this.add.text(0, -panelHeight / 2 + 47, 'Hết giờ', {
+        const title = this.add.text(0, -26, 'Out of time! Failed', {
             fontFamily: 'Arial Black',
-            fontSize: '30px',
-            color: '#f8fafc'
+            fontSize: '22px',
+            color: '#0f172a'
         }).setOrigin(0.5);
 
-        const subtitle = this.add.text(0, -panelHeight / 2 + 112, 'Bạn chưa kịp hoàn thành đường đua', {
-            fontFamily: 'Arial',
-            fontSize: '22px',
-            color: '#e2e8f0',
-            align: 'center',
-            wordWrap: { width: panelWidth - 80, useAdvancedWrap: true }
-        }).setOrigin(0.5, 0);
+        const restartButton = this.createRestartButton(0, 42);
 
-        const restartButton = this.createRestartButton(0, panelHeight / 2 - 70);
-
-        panelContainer.add([panelShadow, panelBg, cornerGlow, accent, divider, title, subtitle, restartButton]);
+        panelContainer.add([panelShadow, panelBg, title, restartButton]);
 
         container.add([overlay, panelContainer]);
         container.setVisible(false);
@@ -638,28 +615,26 @@ export class Game extends Scene
     private createRestartButton(x: number, y: number): Phaser.GameObjects.Container {
         const container = this.add.container(x, y).setScrollFactor(0);
         const width = 260;
-        const height = 64;
-        const radius = 16;
+        const height = 52;
+        const radius = 20;
 
         const shadow = this.add.graphics();
-        shadow.fillStyle(0x000000, 0.35);
-        shadow.fillRoundedRect(-width / 2 + 5, -height / 2 + 7, width, height, radius);
+        shadow.fillStyle(0x000000, 0.2);
+        shadow.fillRoundedRect(-width / 2 + 4, -height / 2 + 6, width, height, radius);
 
         const bg = this.add.graphics();
-        const draw = (fill: number, stroke: number, glowAlpha: number) => {
+        const draw = (fill: number, stroke: number) => {
             bg.clear();
             bg.fillStyle(fill, 1);
             bg.fillRoundedRect(-width / 2, -height / 2, width, height, radius);
-            bg.lineStyle(2, stroke, 0.9);
+            bg.lineStyle(2, stroke, 0.8);
             bg.strokeRoundedRect(-width / 2, -height / 2, width, height, radius);
-            bg.fillStyle(0xffffff, glowAlpha);
-            bg.fillRoundedRect(-width / 2 + 6, -height / 2 + 6, width - 12, 18, 12);
         };
-        draw(0x22c55e, 0xffffff, 0.18);
+        draw(0x3b82f6, 0x93c5fd);
 
-        const text = this.add.text(0, 0, 'CHƠI LẠI', {
+        const text = this.add.text(0, 0, 'Continue', {
             fontFamily: 'Arial Black',
-            fontSize: '24px',
+            fontSize: '20px',
             color: '#ffffff'
         }).setOrigin(0.5);
 
@@ -667,20 +642,20 @@ export class Game extends Scene
         container.setSize(width, height);
         container.setInteractive(new Phaser.Geom.Rectangle(-width / 2, -height / 2, width, height), Phaser.Geom.Rectangle.Contains);
         container.on('pointerover', () => {
-            draw(0x16a34a, 0xffffff, 0.2);
+            draw(0x2563eb, 0xbfdbfe);
             this.tweens.add({ targets: container, scale: 1.02, duration: 120, ease: 'Sine.easeOut' });
         });
         container.on('pointerout', () => {
-            draw(0x22c55e, 0xffffff, 0.18);
+            draw(0x3b82f6, 0x93c5fd);
             this.tweens.add({ targets: container, scale: 1, duration: 120, ease: 'Sine.easeOut' });
         });
         container.on('pointerdown', () => {
-            draw(0x15803d, 0xe2e8f0, 0.1);
+            draw(0x1d4ed8, 0xbfdbfe);
             this.tweens.add({ targets: container, scale: 0.98, duration: 80, ease: 'Sine.easeOut' });
             this.restartRun();
         });
         container.on('pointerup', () => {
-            draw(0x16a34a, 0xffffff, 0.2);
+            draw(0x2563eb, 0xbfdbfe);
             this.tweens.add({ targets: container, scale: 1.02, duration: 80, ease: 'Sine.easeOut' });
         });
 
@@ -689,40 +664,51 @@ export class Game extends Scene
 
     private createStartButton(x: number, y: number): Phaser.GameObjects.Container {
         const container = this.add.container(x, y).setScrollFactor(0);
-        
-        const bg = this.add.rectangle(0, 0, 240, 80, 0xfbbf24)
-            .setStrokeStyle(4, 0xffffff)
-            .setFillStyle(0x22c55e);
+        const width = 260;
+        const height = 52;
+        const radius = 20;
+
+        const shadow = this.add.graphics();
+        shadow.fillStyle(0x000000, 0.2);
+        shadow.fillRoundedRect(-width / 2 + 4, -height / 2 + 6, width, height, radius);
+
+        const bg = this.add.graphics();
+        const draw = (fill: number, stroke: number) => {
+            bg.clear();
+            bg.fillStyle(fill, 1);
+            bg.fillRoundedRect(-width / 2, -height / 2, width, height, radius);
+            bg.lineStyle(2, stroke, 0.8);
+            bg.strokeRoundedRect(-width / 2, -height / 2, width, height, radius);
+        };
+        draw(0x3b82f6, 0x93c5fd);
             
-        const text = this.add.text(0, 0, 'START', {
-            fontFamily: 'Arial Black', fontSize: '26px', color: '#ffffff'
+        const text = this.add.text(0, 0, 'Start Game', {
+            fontFamily: 'Arial Black', fontSize: '20px', color: '#ffffff'
         }).setOrigin(0.5);
 
-        container.add([bg, text]);
-        container.setSize(240, 80);
+        const hitPad = 16;
+        const hitW = width + hitPad * 2;
+        const hitH = height + hitPad * 2;
+        const hit = this.add.rectangle(0, 0, hitW, hitH, 0xffffff, 0.001);
+        hit.setInteractive();
+
+        container.add([shadow, bg, text, hit]);
+        container.setSize(width, height);
 
         const onPress = () => {
             if (!this.startModalOpen) return;
-            bg.setFillStyle(0x16a34a);
+            draw(0x1d4ed8, 0xbfdbfe);
             this.closeStartModal();
             this.openQuizModal();
         };
 
         const onRelease = () => {
-            bg.setFillStyle(0x22c55e);
+            draw(0x3b82f6, 0x93c5fd);
         };
 
-        bg.setInteractive({ useHandCursor: true });
-        text.setInteractive({ useHandCursor: true });
-
-        bg.on('pointerdown', onPress);
-        text.on('pointerdown', onPress);
-
-        bg.on('pointerup', onRelease);
-        text.on('pointerup', onRelease);
-
-        bg.on('pointerout', onRelease);
-        text.on('pointerout', onRelease);
+        hit.on('pointerdown', onPress);
+        hit.on('pointerup', onRelease);
+        hit.on('pointerout', onRelease);
 
         this.tweens.add({
             targets: container,
@@ -774,9 +760,8 @@ export class Game extends Scene
             color: '#ffffff'
         }).setOrigin(0.5);
 
-        const hitPad = 12;
-        const zone = this.add.zone(0, 0, width + hitPad * 2, height + hitPad * 2)
-            .setInteractive({ useHandCursor: true });
+        const hit = this.add.rectangle(0, 0, width, height, 0xffffff, 0.001);
+        hit.setInteractive();
 
         const redraw = (state: 'normal' | 'correct' | 'wrong') => {
             const layout = container.getData('layout') as { x: number; w: number; h: number; radius: number } | undefined;
@@ -809,7 +794,7 @@ export class Game extends Scene
 
         redraw('normal');
 
-        container.add([shadow, bg, text, zone]);
+        container.add([shadow, bg, text, hit]);
         container.setSize(width, height);
 
         const onPress = () => {
@@ -817,14 +802,14 @@ export class Game extends Scene
             this.handleQuizAnswer(index);
         };
 
-        zone.on('pointerdown', () => {
+        hit.on('pointerdown', () => {
             if (!this.quizOpen || this.quizLocked) return;
             onPress();
         });
 
         container.setData('redraw', redraw);
         container.setData('text', text);
-        container.setData('hit', zone);
+        container.setData('hit', hit);
 
         return container;
     }
@@ -991,10 +976,9 @@ export class Game extends Scene
             redraw('normal');
             text.setPosition(x + w / 2, 0);
 
-            const hit = btn.getData('hit') as Phaser.GameObjects.Zone;
-            const hitPad = 10;
-            hit.setSize(w + hitPad * 2, buttonHeight + hitPad * 2);
-            hit.setPosition(0, 0);
+            const hit = btn.getData('hit') as Phaser.GameObjects.Rectangle;
+            hit.setSize(w, buttonHeight);
+            hit.setPosition(x + w / 2, 0);
             btn.setSize(w, buttonHeight);
         });
 
