@@ -1,6 +1,7 @@
 import { EventBus } from '../EventBus';
 import { Scene } from 'phaser';
 import { EmoteCharacter } from '../objects/EmoteCharacter';
+import type { GameQuestion } from '../../services/api';
 
 export class Game extends Scene
 {
@@ -56,6 +57,9 @@ export class Game extends Scene
     // Game State
     score: number = 0;
     currentLeafIndex: number = 0;
+    sessionGameId: string | null = null;
+    sessionQuestions: GameQuestion[] | null = null;
+    sessionTimeLimit: number | null = null;
 
     // Leaf path (detected from track texture)
     private leafPath: Phaser.Math.Vector2[] = [];
@@ -69,6 +73,13 @@ export class Game extends Scene
     constructor ()
     {
         super('Game');
+    }
+
+    init (data: { gameId?: string | null; questions?: GameQuestion[] | null; timeLimit?: number | null })
+    {
+        this.sessionGameId = data?.gameId ?? null;
+        this.sessionQuestions = data?.questions ?? null;
+        this.sessionTimeLimit = data?.timeLimit ?? null;
     }
 
     create ()
@@ -111,6 +122,10 @@ export class Game extends Scene
 
         // UI
         this.createUI();
+
+        if (this.sessionTimeLimit && this.sessionTimeLimit > 0) {
+            this.totalTimeMs = this.sessionTimeLimit * 1000;
+        }
 
         EventBus.emit('current-scene-ready', this);
     }
@@ -1059,10 +1074,11 @@ export class Game extends Scene
         this.quizLocked = false;
         this.jumpButton.setAlpha(0.6);
 
-        const question = this.getMockQuestions()[this.quizCurrentIndex % this.getMockQuestions().length];
+        const questionPool = this.getQuestionPool();
+        const question = questionPool[this.quizCurrentIndex % questionPool.length];
         this.setQuestion({
             index: this.quizCurrentIndex + 1,
-            total: this.getMockQuestions().length,
+            total: questionPool.length,
             question: question.question,
             options: question.options
         });
@@ -1094,7 +1110,8 @@ export class Game extends Scene
     }
 
     private async handleQuizAnswer(index: number): Promise<void> {
-        const question = this.getMockQuestions()[this.quizCurrentIndex % this.getMockQuestions().length];
+        const questionPool = this.getQuestionPool();
+        const question = questionPool[this.quizCurrentIndex % questionPool.length];
         const isCorrect = index === question.correctIndex;
 
         const btn = this.quizOptionButtons[index];
@@ -1137,7 +1154,21 @@ export class Game extends Scene
         }
     }
 
-    private getMockQuestions() {
+    private getQuestionPool() {
+        const apiQuestions = this.sessionQuestions;
+        if (apiQuestions?.length) {
+            return apiQuestions.map((item) => {
+                const options = item.question.options.map((opt) => opt.text);
+                let correctIndex = item.question.options.findIndex((opt) => opt.is_correct);
+                if (correctIndex < 0) correctIndex = 0;
+                return {
+                    question: item.question.content,
+                    options,
+                    correctIndex
+                };
+            });
+        }
+
         return [
             {
                 question: 'What is the capital of Vietnam?',
@@ -1217,7 +1248,9 @@ export class Game extends Scene
             this.timerEvent.remove(false);
         }
 
-        this.totalTimeMs = 180000;
+        this.totalTimeMs = this.sessionTimeLimit && this.sessionTimeLimit > 0
+            ? this.sessionTimeLimit * 1000
+            : 180000;
         this.updateTimerText(this.totalTimeMs);
 
         this.timerEvent = this.time.addEvent({
@@ -1270,6 +1303,7 @@ export class Game extends Scene
         this.endModal.setVisible(true);
         this.endModal.setAlpha(1);
         this.launchConfetti();
+        this.submitSessionResult();
         this.tweens.add({
             targets: overlay,
             alpha: 0.6,
@@ -1365,6 +1399,15 @@ export class Game extends Scene
         }
     }
 
+    private submitSessionResult(): void {
+        if (!this.sessionGameId) return;
+        import('../../services/api')
+            .then(({ endGameSession }) => endGameSession(this.sessionGameId as string, this.score))
+            .catch((err) => {
+                console.error('endGameSession failed', err);
+            });
+    }
+
     private restartRun(): void {
         this.gameOver = false;
         this.gameCompleted = false;
@@ -1409,7 +1452,10 @@ export class Game extends Scene
 
     private updateEndTimeText(): void {
         if (!this.endModalTimeText) return;
-        const elapsedMs = 180000 - this.totalTimeMs;
+        const baseMs = this.sessionTimeLimit && this.sessionTimeLimit > 0
+            ? this.sessionTimeLimit * 1000
+            : 180000;
+        const elapsedMs = baseMs - this.totalTimeMs;
         const totalSeconds = Math.max(0, Math.floor(elapsedMs / 1000));
         const minutes = Math.floor(totalSeconds / 60);
         const seconds = totalSeconds % 60;

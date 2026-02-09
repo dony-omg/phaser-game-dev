@@ -1,5 +1,6 @@
 import { GameObjects, Scene } from 'phaser';
 import { EventBus } from '../EventBus';
+import { startGameSession } from '../../services/api';
 
 export class MainMenu extends Scene
 {
@@ -8,6 +9,7 @@ export class MainMenu extends Scene
     title: GameObjects.Text;
     description: GameObjects.Text;
     startButton: GameObjects.Container;
+    isStarting: boolean = false;
 
     constructor ()
     {
@@ -71,6 +73,7 @@ export class MainMenu extends Scene
         });
         
         button.on('pointerdown', () => {
+            if (this.isStarting) return;
             button.setScale(0.95);
             this.time.delayedCall(100, () => this.changeScene());
         });
@@ -80,6 +83,30 @@ export class MainMenu extends Scene
 
     changeScene ()
     {
-        this.scene.start('Game');
+        if (this.isStarting) return;
+        this.isStarting = true;
+        this.startButton.setAlpha(0.6);
+
+        startGameSession('vocab_race')
+            .then((res) => {
+                const data = res.data;
+                this.scene.start('Game', {
+                    gameId: data.game_id,
+                    questions: data.game_session_questions,
+                    timeLimit: data.game.time_limit
+                });
+            })
+            .catch((err) => {
+                console.error('startGameSession failed, fallback to local questions', err);
+                this.scene.start('Game', {
+                    gameId: null,
+                    questions: null,
+                    timeLimit: null
+                });
+            })
+            .finally(() => {
+                this.isStarting = false;
+                this.startButton.setAlpha(1);
+            });
     }
 }
