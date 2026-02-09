@@ -131,11 +131,13 @@ const FALLBACK_QUESTIONS: GameQuestion[] = [
 
 export class TrainGame extends Scene
 {
-    private readonly debugTrack = true;
-    private readonly showCars = false;
+    private readonly debugTrack = false;
+    private readonly showCars = true;
     private trackSpline?: Phaser.Curves.Spline;
     private trainSprite?: Phaser.GameObjects.Image;
     private trainProgress: number = 0;
+    private trainCarSpacing: number = 0.11;
+    private readonly trainRotationOffset = Phaser.Math.DegToRad(255);
     camera!: Phaser.Cameras.Scene2D.Camera;
     background!: Phaser.GameObjects.Image;
     carSlots: TrainCarSlot[] = [];
@@ -274,9 +276,9 @@ export class TrainGame extends Scene
         this.carSlots = [];
 
         for (let i = 0; i < this.maxCars; i += 1) {
-            const carKey = `train-car-${i + 1}`;
+            const carKey = `train-car-${this.maxCars - i}`;
             const point = trackPoints[i] ?? { x: width / 2, y: height / 2 };
-            const angle = this.getTrackAngle(trackPoints, i);
+            const angle = this.getTrackAngle(trackPoints, i) + this.trainRotationOffset;
             const car = this.add.image(point.x, point.y, carKey).setScale(scale).setRotation(angle);
             if (this.debugTrack) {
                 car.setAlpha(0);
@@ -717,25 +719,35 @@ export class TrainGame extends Scene
             this.drawCurveMarkers(spline, 11);
         }
 
-        const trainPoint = spline.getPoint(0);
-        this.trainSprite = this.add.image(trainPoint.x, trainPoint.y, 'train-car-1');
-        this.trainSprite.setScale(baseScale * 0.72);
-        this.trainSprite.setDepth(6);
-
-        this.trainProgress = 0;
+        this.trainProgress = 1;
         this.tweens.add({
             targets: this,
-            trainProgress: 1,
+            trainProgress: 0,
             duration: 12000,
             repeat: -1,
             onUpdate: () => {
-                if (!this.trackSpline || !this.trainSprite) return;
-                const p = this.trackSpline.getPoint(this.trainProgress);
-                const t = this.trackSpline.getTangent(this.trainProgress).normalize();
-                this.trainSprite.setPosition(p.x, p.y);
-                this.trainSprite.setRotation(Math.atan2(t.y, t.x));
+                if (!this.trackSpline) return;
+                this.updateTrainCars();
             }
         });
+    }
+
+    private updateTrainCars ()
+    {
+        if (!this.trackSpline || !this.showCars) return;
+
+        for (let i = 0; i < this.carSlots.length; i += 1) {
+            const slot = this.carSlots[i];
+            const raw = this.trainProgress - i * this.trainCarSpacing;
+            const t = ((raw % 1) + 1) % 1;
+            const p = this.trackSpline.getPoint(t);
+            const tangent = this.trackSpline.getTangent(t).normalize();
+            slot.car.setPosition(p.x, p.y);
+            slot.car.setRotation(Math.atan2(tangent.y, tangent.x) + this.trainRotationOffset);
+            slot.car.setAlpha(1);
+            slot.lock.setVisible(false);
+            slot.lock.disableInteractive();
+        }
     }
 
     private endGame (reason: string, result: 'win' | 'lose')
