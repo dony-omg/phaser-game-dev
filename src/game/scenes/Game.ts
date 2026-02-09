@@ -2,6 +2,7 @@ import { EventBus } from '../EventBus';
 import { Scene } from 'phaser';
 import { EmoteCharacter } from '../objects/EmoteCharacter';
 import type { GameQuestion } from '../../services/api';
+import { getGameConfig, resolveGameCode } from '../gameConfig';
 
 export class Game extends Scene
 {
@@ -60,6 +61,8 @@ export class Game extends Scene
     sessionGameId: string | null = null;
     sessionQuestions: GameQuestion[] | null = null;
     sessionTimeLimit: number | null = null;
+    gameCode: string = 'vocab_race';
+    gameConfig = getGameConfig('vocab_race');
 
     // Leaf path (detected from track texture)
     private leafPath: Phaser.Math.Vector2[] = [];
@@ -75,8 +78,11 @@ export class Game extends Scene
         super('Game');
     }
 
-    init (data: { gameId?: string | null; questions?: GameQuestion[] | null; timeLimit?: number | null })
+    init (data: { gameCode?: string | null; gameId?: string | null; questions?: GameQuestion[] | null; timeLimit?: number | null })
     {
+        this.gameCode = resolveGameCode(data?.gameCode ?? (this.registry.get('gameCode') as string | undefined));
+        this.registry.set('gameCode', this.gameCode);
+        this.gameConfig = getGameConfig(this.gameCode);
         this.sessionGameId = data?.gameId ?? null;
         this.sessionQuestions = data?.questions ?? null;
         this.sessionTimeLimit = data?.timeLimit ?? null;
@@ -91,7 +97,7 @@ export class Game extends Scene
         this.createParallaxBackground();
 
         // Track (Leaves) - Use bg-main as the scrolling map
-        this.trackImage = this.add.image(width / 2, height, 'bg-main').setOrigin(0.5, 1);
+        this.trackImage = this.add.image(width / 2, height, this.gameConfig.mapKey).setOrigin(0.5, 1);
         const trackScale = width / this.trackImage.width;
         this.trackImage.setScale(trackScale);
 
@@ -99,7 +105,7 @@ export class Game extends Scene
         this.camera.setBounds(0, mapTop, width, this.trackImage.displayHeight);
 
         // Build leaf path based on the map texture
-        this.leafPath = this.buildLeafPath('bg-main');
+        this.leafPath = this.gameConfig.useTexturePath ? this.buildLeafPath(this.gameConfig.mapKey) : [];
 
         // Player Setup - Using EmoteCharacter (idle/correct/incorrect states)
         const startPos = this.getLeafPosition(0);
@@ -131,7 +137,7 @@ export class Game extends Scene
     }
 
     createParallaxBackground() {
-        this.cameras.main.setBackgroundColor(0x3fb3e8);
+        this.cameras.main.setBackgroundColor(this.gameConfig.backgroundColor);
         this.parallaxLayers = [];
     }
 

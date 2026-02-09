@@ -4,6 +4,7 @@ import { Game as MainGame } from './scenes/Game';
 import { MainMenu } from './scenes/MainMenu';
 import Phaser, { AUTO, Game } from 'phaser';
 import { Preloader } from './scenes/Preloader';
+import { DEFAULT_GAME_CODE, resolveGameCode } from './gameConfig';
 
 //  Find out more information about the Game Config at:
 //  https://newdocs.phaser.io/docs/3.70.0/Phaser.Types.Core.GameConfig
@@ -26,9 +27,22 @@ const config: Phaser.Types.Core.GameConfig = {
     ]
 };
 
-const StartGame = (parent: string) => {
+type StartGameOptions = {
+    gameCode?: string | null;
+};
 
-    return new Game({ ...config, parent });
+const StartGame = (parent: string, options?: StartGameOptions) => {
+    const gameCode = resolveGameCode(options?.gameCode ?? DEFAULT_GAME_CODE);
+
+    return new Game({
+        ...config,
+        parent,
+        callbacks: {
+            preBoot: (game) => {
+                game.registry.set('gameCode', gameCode);
+            }
+        }
+    });
 
 }
 

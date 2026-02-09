@@ -1,5 +1,6 @@
 import { EventBus } from '../EventBus';
 import { Scene } from 'phaser';
+import { getGameConfig, resolveGameCode } from '../gameConfig';
 
 type GameOverData = {
     score: number;
@@ -30,6 +31,8 @@ export class GameOver extends Scene
     create ()
     {
         const { width, height } = this.scale;
+        const gameCode = resolveGameCode(this.registry.get('gameCode') as string | undefined);
+        const gameConfig = getGameConfig(gameCode);
         const { score, bonus, result, reason } = this.dataPayload || {
             score: 0,
             bonus: 0,
@@ -40,7 +43,7 @@ export class GameOver extends Scene
         this.camera = this.cameras.main
         this.camera.setBackgroundColor(result === 'win' ? 0x16a34a : 0xdc2626);
 
-        this.background = this.add.image(width / 2, height / 2, 'background');
+        this.background = this.add.image(width / 2, height / 2, gameConfig.mapKey);
         this.background.setAlpha(0.5);
 
         this.gameOverText = this.add.text(width / 2, 220, result === 'win' ? 'Chiến Thắng!' : 'Hết Giờ', {
@@ -82,6 +85,7 @@ export class GameOver extends Scene
 
     changeScene ()
     {
-        this.scene.start('MainMenu');
+        const gameCode = resolveGameCode(this.registry.get('gameCode') as string | undefined);
+        this.scene.start('MainMenu', { gameCode });
     }
 }

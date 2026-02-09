@@ -1,4 +1,5 @@
 import { Scene } from 'phaser';
+import { getGameConfig } from '../gameConfig';
 
 /**
  * Preloader Scene - Stage 2: Load all game assets with visual progress
@@ -116,61 +117,57 @@ export class Preloader extends Scene
 
     preload ()
     {
-        // Set base path for all assets
-        this.load.setPath('assets');
+        const gameCode = this.registry.get('gameCode') as string | undefined;
+        const gameConfig = getGameConfig(gameCode);
+        const assetRoot = gameConfig.assetRoot;
+
+        // Ensure assets resolve from site root even on /game/* routes
+        this.load.setPath('/assets');
 
         // ==================== UI ASSETS ====================
-        this.load.image('star', 'ui/star.png');
-        this.load.image('ui-example', 'ui/example.png');
+        this.load.image('star', `${assetRoot}/ui/star.png`);
+        this.load.image('ui-example', `${assetRoot}/ui/example.png`);
 
         // ==================== GAMEPLAY ASSETS ====================
-        this.load.image('bg-1', 'backgrounds/1.png');
-        this.load.image('bg-2', 'backgrounds/2.png');
-        this.load.image('bg-3', 'backgrounds/3.png');
-        this.load.image('bg-4', 'backgrounds/4.png');
-        this.load.image('bg-5', 'backgrounds/5.png');
-        this.load.image('bg-6', 'backgrounds/6.png');
-        this.load.image('bg-main', 'backgrounds/bg 2.png');
+        this.load.image('bg-1', `${assetRoot}/backgrounds/1.png`);
+        this.load.image('bg-2', `${assetRoot}/backgrounds/2.png`);
+        this.load.image('bg-3', `${assetRoot}/backgrounds/3.png`);
+        this.load.image('bg-4', `${assetRoot}/backgrounds/4.png`);
+        this.load.image('bg-5', `${assetRoot}/backgrounds/5.png`);
+        this.load.image('bg-6', `${assetRoot}/backgrounds/6.png`);
+        this.load.image(gameConfig.mapKey, `${assetRoot}/${gameConfig.mapPath}`);
 
         // ==================== CHARACTER ASSETS ====================
-        this.load.spritesheet('character', 'characters/character animation tran.png', {
+        this.load.spritesheet('character', `${assetRoot}/characters/character animation tran.png`, {
             frameWidth: 515,
             frameHeight: 1128,
             margin: 15
         });
-        this.load.image('char-jump', 'char-jump.png');
-        this.load.image('char-emotes', 'char-emotes.png');
+        // char-jump.png is not present in assets; skip loading to avoid load error
+        this.load.image('char-emotes', `${assetRoot}/characters/char-emotes.png`);
 
         // ==================== EMOTE ASSETS ====================
-        // Load 3 trạng thái nhân vật robot từ spritesheet
-        // File emo.png chứa 3 frame: Idle | Correct | Incorrect
-        this.load.spritesheet('emote-robot', 'emotes/emo.png', {
-            frameWidth: 512,
-            frameHeight: 512
-        });
-
         // Legacy emotes
-        this.load.image('emote-happy', 'emotes/emo.png');
-        this.load.image('emote-tran-idle', 'emotes/emo tran .png');
-        this.load.image('emote-tran-idle-flipped', 'emotes/emo tran flipped idle.png');
-        this.load.image('emote-tran-correct', 'emotes/emo tran correct.png');
-        this.load.image('emote-tran-correct-flipped', 'emotes/emo tran flipped correct.png');
-        this.load.image('emote-tran-incorrect', 'emotes/emo tran incorrect.png');
-        this.load.image('emote-tran-incorrect-flipped', 'emotes/emo tran flipped incorrect.png');
+        this.load.image('emote-tran-idle', `${assetRoot}/emotes/emo tran .png`);
+        this.load.image('emote-tran-idle-flipped', `${assetRoot}/emotes/emo tran flipped idle.png`);
+        this.load.image('emote-tran-correct', `${assetRoot}/emotes/emo tran correct.png`);
+        this.load.image('emote-tran-correct-flipped', `${assetRoot}/emotes/emo tran flipped correct.png`);
+        this.load.image('emote-tran-incorrect', `${assetRoot}/emotes/emo tran incorrect.png`);
+        this.load.image('emote-tran-incorrect-flipped', `${assetRoot}/emotes/emo tran flipped incorrect.png`);
 
         // ==================== TILE ASSETS ====================
-        this.load.image('tile-1', 'tiles/1.png');
-        this.load.image('tile-2', 'tiles/2.png');
-        this.load.image('tile-3', 'tiles/3.png');
-        this.load.image('tile-4', 'tiles/4.png');
-        this.load.image('tile-5', 'tiles/5.png');
-        this.load.image('tile-6', 'tiles/6.png');
-        this.load.image('tile-flower', 'tiles/flower.png');
-        this.load.image('tile-green', 'tiles/green.png');
-        this.load.image('tile-shadow', 'tiles/shadoe.png');
+        this.load.image('tile-1', `${assetRoot}/tiles/1.png`);
+        this.load.image('tile-2', `${assetRoot}/tiles/2.png`);
+        this.load.image('tile-3', `${assetRoot}/tiles/3.png`);
+        this.load.image('tile-4', `${assetRoot}/tiles/4.png`);
+        this.load.image('tile-5', `${assetRoot}/tiles/5.png`);
+        this.load.image('tile-6', `${assetRoot}/tiles/6.png`);
+        this.load.image('tile-flower', `${assetRoot}/tiles/flower.png`);
+        this.load.image('tile-green', `${assetRoot}/tiles/green.png`);
+        this.load.image('tile-shadow', `${assetRoot}/tiles/shadoe.png`);
 
         // ==================== MAP ASSETS ====================
-        this.load.image('map-all', 'maps/All map.png');
+        this.load.image('map-all', `${assetRoot}/maps/All map.png`);
     }
 
     private createParallaxLoaderBackground ()
@@ -199,11 +196,13 @@ export class Preloader extends Scene
         // Create global animations here if needed
         this.createGlobalAnimations();
 
-        // Transition directly to Game scene (skip MainMenu during development)
+        const gameCode = this.registry.get('gameCode') as string | undefined;
+
+        // Skip MainMenu and go straight into Game
         this.time.delayedCall(300, () => {
             this.cameras.main.fadeOut(200, 0, 0, 0);
             this.cameras.main.once('camerafadeoutcomplete', () => {
-                this.scene.start('Game');
+                this.scene.start('Game', { gameCode });
             });
         });
     }
@@ -213,30 +212,6 @@ export class Preloader extends Scene
      */
     private createGlobalAnimations(): void
     {
-        // Robot character animations from emote-robot spritesheet
-        // Frame 0: Idle, Frame 1: Correct, Frame 2: Incorrect
-
-        this.anims.create({
-            key: 'robot-idle',
-            frames: [{ key: 'emote-robot', frame: 0 }],
-            frameRate: 1,
-            repeat: 0
-        });
-
-        this.anims.create({
-            key: 'robot-correct',
-            frames: [{ key: 'emote-robot', frame: 1 }],
-            frameRate: 1,
-            repeat: 0
-        });
-
-        this.anims.create({
-            key: 'robot-incorrect',
-            frames: [{ key: 'emote-robot', frame: 2 }],
-            frameRate: 1,
-            repeat: 0
-        });
-
         this.anims.create({
             key: 'character-fly',
             frames: this.anims.generateFrameNumbers('character', { start: 0, end: 9 }),

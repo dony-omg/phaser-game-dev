@@ -1,10 +1,14 @@
 import { PhaserGame } from './PhaserGame';
 
-function App()
+type AppProps = {
+    gameCode?: string;
+};
+
+function App({ gameCode }: AppProps)
 {
     return (
         <div id="app">
-            <PhaserGame />
+            <PhaserGame gameCode={gameCode} />
         </div>
     )
 }

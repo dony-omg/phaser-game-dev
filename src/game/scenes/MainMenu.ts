@@ -1,6 +1,7 @@
 import { GameObjects, Scene } from 'phaser';
 import { EventBus } from '../EventBus';
 import { startGameSession } from '../../services/api';
+import { getGameConfig, resolveGameCode } from '../gameConfig';
 
 export class MainMenu extends Scene
 {
@@ -10,21 +11,29 @@ export class MainMenu extends Scene
     description: GameObjects.Text;
     startButton: GameObjects.Container;
     isStarting: boolean = false;
+    gameCode: string = 'vocab_race';
 
     constructor ()
     {
         super('MainMenu');
     }
 
+    init (data: { gameCode?: string | null })
+    {
+        this.gameCode = resolveGameCode(data?.gameCode ?? (this.registry.get('gameCode') as string | undefined));
+        this.registry.set('gameCode', this.gameCode);
+    }
+
     create ()
     {
         const { width, height } = this.scale;
+        const gameConfig = getGameConfig(this.gameCode);
 
-        this.background = this.add.image(width / 2, height / 2, 'background').setDisplaySize(width, height);
+        this.background = this.add.image(width / 2, height / 2, gameConfig.mapKey).setDisplaySize(width, height);
 
         this.logo = this.add.image(width / 2, 220, 'logo').setDepth(100).setScale(0.9);
 
-        this.title = this.add.text(width / 2, 360, 'Đua Từ Vựng', {
+        this.title = this.add.text(width / 2, 360, gameConfig.label, {
             fontFamily: 'Arial Black', fontSize: 46, color: '#ffffff',
             stroke: '#000000', strokeThickness: 8,
             align: 'center'
@@ -87,10 +96,12 @@ export class MainMenu extends Scene
         this.isStarting = true;
         this.startButton.setAlpha(0.6);
 
-        startGameSession('vocab_race')
+        const gameConfig = getGameConfig(this.gameCode);
+        startGameSession(gameConfig.code)
             .then((res) => {
                 const data = res.data;
                 this.scene.start('Game', {
+                    gameCode: this.gameCode,
                     gameId: data.game_id,
                     questions: data.game_session_questions,
                     timeLimit: data.game.time_limit
@@ -99,6 +110,7 @@ export class MainMenu extends Scene
             .catch((err) => {
                 console.error('startGameSession failed, fallback to local questions', err);
                 this.scene.start('Game', {
+                    gameCode: this.gameCode,
                     gameId: null,
                     questions: null,
                     timeLimit: null
