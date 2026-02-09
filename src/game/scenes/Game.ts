@@ -947,9 +947,9 @@ export class Game extends Scene
         this.quizPanelHeight = panelHeight;
         this.quizPanelWidth = panelWidth;
 
-        // Anchor bottom with safe area
+        // Center panel on screen
         const panelX = width / 2;
-        const panelY = height - (panelHeight * this.uiScale) / 2 - this.safeInsetBottom;
+        const panelY = height / 2;
         this.quizPanelContainer.setScale(this.uiScale);
         this.quizPanelContainer.setPosition(panelX, panelY);
 
@@ -998,9 +998,13 @@ export class Game extends Scene
             btn.setSize(w, buttonHeight);
         });
 
-        // Ensure top art visible
-        if (panelY - (panelHeight * this.uiScale) / 2 < 80) {
-            this.quizPanelContainer.y = 80 + (panelHeight * this.uiScale) / 2;
+        // Keep panel fully visible
+        const halfPanel = (panelHeight * this.uiScale) / 2;
+        if (this.quizPanelContainer.y - halfPanel < 60) {
+            this.quizPanelContainer.y = 60 + halfPanel;
+        }
+        if (this.quizPanelContainer.y + halfPanel > height - 40) {
+            this.quizPanelContainer.y = height - 40 - halfPanel;
         }
     }
 
