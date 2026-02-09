@@ -29,6 +29,9 @@ export class Game extends Scene
     quizPanelHeight: number = 0;
     uiScale: number = 1;
     safeInsetBottom: number = 16;
+    quizFeedbackTitleText!: Phaser.GameObjects.Text;
+    quizFeedbackSubtitleText!: Phaser.GameObjects.Text;
+    quizFeedbackState: 'idle' | 'correct' | 'wrong' = 'idle';
     quizQuestionText!: Phaser.GameObjects.Text;
     quizIndexText!: Phaser.GameObjects.Text;
     quizOptionButtons: Phaser.GameObjects.Container[] = [];
@@ -332,6 +335,22 @@ export class Game extends Scene
             color: '#38bdf8'
         }).setOrigin(0.5, 0);
 
+        this.quizFeedbackTitleText = this.add.text(0, 0, 'Correct!', {
+            fontFamily: 'Arial Black',
+            fontSize: '22px',
+            color: '#22c55e',
+            align: 'center',
+            wordWrap: { width: 600, useAdvancedWrap: true }
+        }).setOrigin(0.5, 0);
+
+        this.quizFeedbackSubtitleText = this.add.text(0, 0, 'You earned 1 point!', {
+            fontFamily: 'Arial Black',
+            fontSize: '18px',
+            color: '#16a34a',
+            align: 'center',
+            wordWrap: { width: 600, useAdvancedWrap: true }
+        }).setOrigin(0.5, 0);
+
         this.quizQuestionText = this.add.text(0, 0, '...', {
             fontFamily: 'Arial Black',
             fontSize: '28px',
@@ -340,7 +359,15 @@ export class Game extends Scene
             wordWrap: { width: 600, useAdvancedWrap: true }
         }).setOrigin(0.5, 0);
 
-        panelContainer.add([panelShadow, panelBg, panelGlow, this.quizIndexText, this.quizQuestionText]);
+        panelContainer.add([
+            panelShadow,
+            panelBg,
+            panelGlow,
+            this.quizIndexText,
+            this.quizFeedbackTitleText,
+            this.quizFeedbackSubtitleText,
+            this.quizQuestionText
+        ]);
 
         this.quizOptionButtons = [];
         for (let i = 0; i < 4; i++) {
@@ -818,6 +845,7 @@ export class Game extends Scene
 
     private setQuestion(data: { index: number; total: number; question: string; options: string[] }): void {
         this.quizIndexText.setText(`Question ${data.index}/${data.total}`);
+        this.setQuizFeedback('idle');
         const maxQuestionChars = 55;
         const question =
             data.question.length > maxQuestionChars
@@ -855,6 +883,8 @@ export class Game extends Scene
         // Question wrap width
         const questionWrap = Math.floor(panelWidth * 0.8);
         this.quizQuestionText.setWordWrapWidth(questionWrap, true);
+        this.quizFeedbackTitleText.setWordWrapWidth(questionWrap, true);
+        this.quizFeedbackSubtitleText.setWordWrapWidth(questionWrap, true);
 
         // Auto-reduce question font until layout fits
         let fontSize = 28;
@@ -865,6 +895,11 @@ export class Game extends Scene
             this.quizQuestionText.setFontSize(fontSize);
             const qBounds = this.quizQuestionText.getBounds();
             const headerH = this.quizIndexText.getBounds().height;
+            const feedbackTitleH = 22;
+            const feedbackSubtitleH = 18;
+            const feedbackGap = 4;
+            const feedbackTopGap = 8;
+            const feedbackBottomGap = 8;
             const paddingTop = 10;
             const paddingBottom = 14;
             const questionGap = 6;
@@ -875,7 +910,11 @@ export class Game extends Scene
             panelHeight =
                 paddingTop +
                 headerH +
-                questionGap +
+                feedbackTopGap +
+                feedbackTitleH +
+                feedbackGap +
+                feedbackSubtitleH +
+                feedbackBottomGap +
                 qBounds.height +
                 optionsTopGap +
                 (buttonHeight * 4) +
@@ -895,11 +934,18 @@ export class Game extends Scene
         let optionsTopGap = 14;
         let buttonHeight = 62;
         let buttonGap = 14;
+        let feedbackTopGap = 8;
+        let feedbackBottomGap = 8;
+        const feedbackTitleH = 22;
+        const feedbackSubtitleH = 18;
+        const feedbackGap = 4;
         if (panelHeight > maxPanelHeight) {
             paddingTop = 10;
             paddingBottom = 12;
             questionGap = 6;
             optionsTopGap = 12;
+            feedbackTopGap = 6;
+            feedbackBottomGap = 6;
         }
 
         const minButtonHeight = 52;
@@ -907,7 +953,11 @@ export class Game extends Scene
         const fixedHeight =
             paddingTop +
             headerH +
-            questionGap +
+            feedbackTopGap +
+            feedbackTitleH +
+            feedbackGap +
+            feedbackSubtitleH +
+            feedbackBottomGap +
             qBounds.height +
             optionsTopGap +
             paddingBottom;
@@ -924,7 +974,11 @@ export class Game extends Scene
         panelHeight =
             paddingTop +
             headerH +
-            questionGap +
+            feedbackTopGap +
+            feedbackTitleH +
+            feedbackGap +
+            feedbackSubtitleH +
+            feedbackBottomGap +
             qBounds.height +
             optionsTopGap +
             (buttonHeight * 4) +
@@ -958,7 +1012,10 @@ export class Game extends Scene
         // Header + question positions
         const headerY = -panelHeight / 2 + paddingTop;
         this.quizIndexText.setPosition(0, headerY);
-        const questionY = headerY + headerH + questionGap;
+        const feedbackY = headerY + headerH + feedbackTopGap;
+        this.quizFeedbackTitleText.setPosition(0, feedbackY);
+        this.quizFeedbackSubtitleText.setPosition(0, feedbackY + feedbackTitleH + feedbackGap);
+        const questionY = feedbackY + feedbackTitleH + feedbackGap + feedbackSubtitleH + feedbackBottomGap;
         this.quizQuestionText.setPosition(0, questionY);
 
         // Buttons
@@ -1046,8 +1103,10 @@ export class Game extends Scene
         if (isCorrect) {
             this.quizLocked = true;
             redraw('correct');
+            this.setQuizFeedback('correct');
             this.updateScore(1);
             this.speedUpJump();
+            await this.delay(400);
             this.closeQuizModal();
             await this.handleJump();
             this.quizCurrentIndex += 1;
@@ -1057,6 +1116,7 @@ export class Game extends Scene
         } else {
             this.quizLocked = true;
             redraw('wrong');
+            this.setQuizFeedback('wrong');
             this.updateScore(-1);
             this.showPlayerState('incorrect');
             const panel = this.quizModal.getData('panel') as Phaser.GameObjects.Container;
@@ -1567,5 +1627,36 @@ export class Game extends Scene
         } else {
             this.player.showIncorrect(800);
         }
+    }
+
+    private setQuizFeedback(state: 'idle' | 'correct' | 'wrong'): void {
+        if (!this.quizFeedbackTitleText || !this.quizFeedbackSubtitleText) return;
+
+        if (state === 'correct') {
+            this.quizFeedbackTitleText.setText('Correct!');
+            this.quizFeedbackTitleText.setColor('#22c55e');
+            this.quizFeedbackSubtitleText.setText('You earned 1 point!');
+            this.quizFeedbackSubtitleText.setColor('#16a34a');
+            this.quizFeedbackTitleText.setAlpha(1);
+            this.quizFeedbackSubtitleText.setAlpha(1);
+        } else if (state === 'wrong') {
+            this.quizFeedbackTitleText.setText('Sorry!');
+            this.quizFeedbackTitleText.setColor('#ef4444');
+            this.quizFeedbackSubtitleText.setText('You have to start over.');
+            this.quizFeedbackSubtitleText.setColor('#0f172a');
+            this.quizFeedbackTitleText.setAlpha(1);
+            this.quizFeedbackSubtitleText.setAlpha(1);
+        } else {
+            this.quizFeedbackTitleText.setAlpha(0);
+            this.quizFeedbackSubtitleText.setAlpha(0);
+        }
+
+        this.quizFeedbackState = state;
+    }
+
+    private delay(ms: number): Promise<void> {
+        return new Promise((resolve) => {
+            this.time.delayedCall(ms, () => resolve());
+        });
     }
 }
