@@ -326,7 +326,7 @@ export class Game extends Scene
         const panelBg = this.add.graphics();
         const panelGlow = this.add.graphics();
 
-        this.quizIndexText = this.add.text(0, 0, 'Câu 1/4', {
+        this.quizIndexText = this.add.text(0, 0, 'Question 1/4', {
             fontFamily: 'Arial Black',
             fontSize: '14px',
             color: '#38bdf8'
@@ -411,9 +411,9 @@ export class Game extends Scene
         const overlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.6)
             .setOrigin(0, 0);
 
-        const panelWidth = Math.min(640, width - 120);
-        const panelHeight = Math.min(360, height - 220);
-        const panelContainer = this.add.container(width / 2, height / 2).setScrollFactor(0);
+        const panelWidth = Math.min(520, width - 80);
+        const panelHeight = 220;
+        const panelContainer = this.add.container(width / 2, Math.round(height * 0.56)).setScrollFactor(0);
         overlay.setDepth(0);
         panelContainer.setDepth(1);
 
@@ -426,76 +426,74 @@ export class Game extends Scene
         blocker.on('pointerdown', () => {});
 
         const panelShadow = this.add.graphics();
-        panelShadow.fillStyle(0x000000, 0.28);
-        panelShadow.fillRoundedRect(-panelWidth / 2 + 12, -panelHeight / 2 + 18, panelWidth, panelHeight, 26);
-        panelShadow.fillStyle(0x000000, 0.18);
-        panelShadow.fillRoundedRect(-panelWidth / 2 + 8, -panelHeight / 2 + 12, panelWidth, panelHeight, 24);
+        panelShadow.fillStyle(0x000000, 0.15);
+        panelShadow.fillRoundedRect(-panelWidth / 2 + 6, -panelHeight / 2 + 10, panelWidth, panelHeight, 26);
 
         const panelBg = this.add.graphics();
-        panelBg.fillStyle(0x22c55e, 1);
+        panelBg.fillStyle(0xffffff, 0.85);
         panelBg.fillRoundedRect(-panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight, 24);
-        panelBg.lineStyle(3, 0xffffff, 0.6);
+        panelBg.lineStyle(2, 0x93c5fd, 0.45);
         panelBg.strokeRoundedRect(-panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight, 24);
 
-        const title = this.add.text(0, -panelHeight / 2 + 50, 'Chúc mừng!', {
+        const title = this.add.text(0, -64, 'Congratulations!', {
             fontFamily: 'Arial Black',
-            fontSize: '40px',
-            color: '#f8fafc'
+            fontSize: '22px',
+            color: '#0f172a'
         }).setOrigin(0.5);
 
-        const subtitle = this.add.text(0, -panelHeight / 2 + 108, 'Bạn đã hoàn thành hành trình', {
+        const subtitle = this.add.text(0, -36, 'You completed the run.', {
             fontFamily: 'Arial',
-            fontSize: '20px',
-            color: '#d1fae5',
+            fontSize: '18px',
+            color: '#0f172a',
             align: 'center',
-            wordWrap: { width: panelWidth - 80, useAdvancedWrap: true }
-        }).setOrigin(0.5, 0);
+            wordWrap: { width: panelWidth - 60, useAdvancedWrap: true }
+        }).setOrigin(0.5);
 
-        const statsGap = 18;
-        const cardWidth = Math.min(220, Math.floor((panelWidth - 120) / 2));
-        const cardHeight = 52;
-        const statsY = 8;
+        const statsGap = 16;
+        const cardWidth = Math.min(200, Math.floor((panelWidth - 120) / 2));
+        const cardHeight = 46;
+        const statsY = 62;
 
         const scoreCard = this.add.graphics();
-        scoreCard.fillStyle(0x0f172a, 0.35);
+        scoreCard.fillStyle(0x93c5fd, 0.18);
         scoreCard.fillRoundedRect(-cardWidth / 2, -cardHeight / 2, cardWidth, cardHeight, 16);
-        scoreCard.lineStyle(2, 0xffffff, 0.25);
+        scoreCard.lineStyle(2, 0x93c5fd, 0.45);
         scoreCard.strokeRoundedRect(-cardWidth / 2, -cardHeight / 2, cardWidth, cardHeight, 16);
 
         const timeCard = this.add.graphics();
-        timeCard.fillStyle(0x0f172a, 0.35);
+        timeCard.fillStyle(0x93c5fd, 0.18);
         timeCard.fillRoundedRect(-cardWidth / 2, -cardHeight / 2, cardWidth, cardHeight, 16);
-        timeCard.lineStyle(2, 0xffffff, 0.25);
+        timeCard.lineStyle(2, 0x93c5fd, 0.45);
         timeCard.strokeRoundedRect(-cardWidth / 2, -cardHeight / 2, cardWidth, cardHeight, 16);
 
         const scoreCardContainer = this.add.container(-cardWidth / 2 - statsGap / 2, statsY, [scoreCard]);
         const timeCardContainer = this.add.container(cardWidth / 2 + statsGap / 2, statsY, [timeCard]);
 
-        const scoreLabel = this.add.text(scoreCardContainer.x, statsY - 14, 'ĐIỂM', {
+        const scoreLabel = this.add.text(scoreCardContainer.x, statsY - 16, 'SCORE', {
             fontFamily: 'Arial Black',
             fontSize: '12px',
-            color: '#a7f3d0'
+            color: '#1e3a8a'
         }).setOrigin(0.5);
 
-        const timeLabel = this.add.text(timeCardContainer.x, statsY - 14, 'THỜI GIAN', {
+        const timeLabel = this.add.text(timeCardContainer.x, statsY - 16, 'TIME', {
             fontFamily: 'Arial Black',
             fontSize: '12px',
-            color: '#a7f3d0'
+            color: '#1e3a8a'
         }).setOrigin(0.5);
 
         this.endModalScoreText = this.add.text(scoreCardContainer.x, statsY + 6, '0', {
             fontFamily: 'Arial Black',
-            fontSize: '22px',
-            color: '#f8fafc'
+            fontSize: '18px',
+            color: '#0f172a'
         }).setOrigin(0.5);
 
         this.endModalTimeText = this.add.text(timeCardContainer.x, statsY + 6, '00:00', {
             fontFamily: 'Arial Black',
-            fontSize: '20px',
-            color: '#f8fafc'
+            fontSize: '18px',
+            color: '#0f172a'
         }).setOrigin(0.5);
 
-        const restartButton = this.createEndRestartButton(0, panelHeight / 2 - 72);
+        const restartButton = this.createEndRestartButton(0, panelHeight / 2 + 56);
         restartButton.setDepth(2);
 
         panelContainer.add([
@@ -508,9 +506,9 @@ export class Game extends Scene
             scoreLabel,
             timeLabel,
             this.endModalScoreText,
-            this.endModalTimeText,
-            restartButton
+            this.endModalTimeText
         ]);
+        panelContainer.add(restartButton);
 
         container.add([overlay, blocker, panelContainer]);
         container.setVisible(false);
@@ -523,49 +521,51 @@ export class Game extends Scene
     
     private createEndRestartButton(x: number, y: number): Phaser.GameObjects.Container {
         const container = this.add.container(x, y).setScrollFactor(0);
-        const width = 300;
-        const height = 68;
-        const radius = 18;
+        const width = 260;
+        const height = 52;
+        const radius = 20;
 
         const shadow = this.add.graphics();
-        shadow.fillStyle(0x000000, 0.35);
-        shadow.fillRoundedRect(-width / 2 + 4, -height / 2 + 8, width, height, radius);
+        shadow.fillStyle(0x000000, 0.2);
+        shadow.fillRoundedRect(-width / 2 + 4, -height / 2 + 6, width, height, radius);
 
         const bg = this.add.graphics();
-        const draw = (fill: number) => {
+        const draw = (fill: number, stroke: number) => {
             bg.clear();
             bg.fillStyle(fill, 1);
             bg.fillRoundedRect(-width / 2, -height / 2, width, height, radius);
-            bg.lineStyle(2, 0xffffff, 0.7);
+            bg.lineStyle(2, stroke, 0.8);
             bg.strokeRoundedRect(-width / 2, -height / 2, width, height, radius);
         };
-        draw(0x0f172a);
+        draw(0x3b82f6, 0x93c5fd);
 
-        const text = this.add.text(0, 0, 'CHƠI LẠI', {
+        const text = this.add.text(0, 0, 'Play Again', {
             fontFamily: 'Arial Black',
-            fontSize: '26px',
-            color: '#f8fafc'
+            fontSize: '20px',
+            color: '#ffffff'
         }).setOrigin(0.5);
 
-        container.add([shadow, bg, text]);
-        container.setSize(width, height);
-        container.setInteractive(new Phaser.Geom.Rectangle(-width / 2, -height / 2, width, height), Phaser.Geom.Rectangle.Contains);
+        const hit = this.add.rectangle(0, 0, width, height, 0xffffff, 0.001);
+        hit.setInteractive();
 
-        container.on('pointerover', () => {
-            draw(0x1f2937);
+        container.add([shadow, bg, text, hit]);
+        container.setSize(width, height);
+
+        hit.on('pointerover', () => {
+            draw(0x2563eb, 0xbfdbfe);
             this.tweens.add({ targets: container, scale: 1.02, duration: 120, ease: 'Sine.easeOut' });
         });
-        container.on('pointerout', () => {
-            draw(0x0f172a);
+        hit.on('pointerout', () => {
+            draw(0x3b82f6, 0x93c5fd);
             this.tweens.add({ targets: container, scale: 1, duration: 120, ease: 'Sine.easeOut' });
         });
-        container.on('pointerdown', () => {
-            draw(0x0b1220);
+        hit.on('pointerdown', () => {
+            draw(0x1d4ed8, 0xbfdbfe);
             this.tweens.add({ targets: container, scale: 0.98, duration: 80, ease: 'Sine.easeOut' });
             this.restartRun();
         });
-        container.on('pointerup', () => {
-            draw(0x1f2937);
+        hit.on('pointerup', () => {
+            draw(0x2563eb, 0xbfdbfe);
             this.tweens.add({ targets: container, scale: 1.02, duration: 80, ease: 'Sine.easeOut' });
         });
 
@@ -638,23 +638,25 @@ export class Game extends Scene
             color: '#ffffff'
         }).setOrigin(0.5);
 
-        container.add([shadow, bg, text]);
+        const hit = this.add.rectangle(0, 0, width, height, 0xffffff, 0.001);
+        hit.setInteractive();
+
+        container.add([shadow, bg, text, hit]);
         container.setSize(width, height);
-        container.setInteractive(new Phaser.Geom.Rectangle(-width / 2, -height / 2, width, height), Phaser.Geom.Rectangle.Contains);
-        container.on('pointerover', () => {
+        hit.on('pointerover', () => {
             draw(0x2563eb, 0xbfdbfe);
             this.tweens.add({ targets: container, scale: 1.02, duration: 120, ease: 'Sine.easeOut' });
         });
-        container.on('pointerout', () => {
+        hit.on('pointerout', () => {
             draw(0x3b82f6, 0x93c5fd);
             this.tweens.add({ targets: container, scale: 1, duration: 120, ease: 'Sine.easeOut' });
         });
-        container.on('pointerdown', () => {
+        hit.on('pointerdown', () => {
             draw(0x1d4ed8, 0xbfdbfe);
             this.tweens.add({ targets: container, scale: 0.98, duration: 80, ease: 'Sine.easeOut' });
             this.restartRun();
         });
-        container.on('pointerup', () => {
+        hit.on('pointerup', () => {
             draw(0x2563eb, 0xbfdbfe);
             this.tweens.add({ targets: container, scale: 1.02, duration: 80, ease: 'Sine.easeOut' });
         });
@@ -815,7 +817,7 @@ export class Game extends Scene
     }
 
     private setQuestion(data: { index: number; total: number; question: string; options: string[] }): void {
-        this.quizIndexText.setText(`Câu ${data.index}/${data.total}`);
+        this.quizIndexText.setText(`Question ${data.index}/${data.total}`);
         const maxQuestionChars = 55;
         const question =
             data.question.length > maxQuestionChars
@@ -1078,18 +1080,18 @@ export class Game extends Scene
     private getMockQuestions() {
         return [
             {
-                question: 'Đâu là thủ đô của Việt Nam?',
-                options: ['Hà Nội', 'Đà Nẵng', 'Hải Phòng', 'Cần Thơ'],
+                question: 'What is the capital of Vietnam?',
+                options: ['Hanoi', 'Da Nang', 'Hai Phong', 'Can Tho'],
                 correctIndex: 0
             },
             {
-                question: 'Phaser sử dụng ngôn ngữ nào?',
+                question: 'Which language does Phaser use?',
                 options: ['TypeScript/JavaScript', 'C#', 'Python', 'Go'],
                 correctIndex: 0
             },
             {
-                question: 'Màu của chiếc lá trong game là gì?',
-                options: ['Xanh', 'Đỏ', 'Tím', 'Vàng'],
+                question: 'What color are the leaves in the game?',
+                options: ['Green', 'Red', 'Purple', 'Yellow'],
                 correctIndex: 0
             }
         ];
@@ -1341,7 +1343,7 @@ export class Game extends Scene
         const points = Math.max(0, this.score);
         this.scoreText.setText(`POINTS: ${points.toString().padStart(2, '0')}`);
         if (this.endModalScoreText) {
-            this.endModalScoreText.setText(`Điểm: ${this.score}`);
+            this.endModalScoreText.setText(`Score: ${this.score}`);
         }
     }
 
@@ -1352,7 +1354,7 @@ export class Game extends Scene
         const minutes = Math.floor(totalSeconds / 60);
         const seconds = totalSeconds % 60;
         const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
-        this.endModalTimeText.setText(`Thời gian: ${pad(minutes)}:${pad(seconds)}`);
+        this.endModalTimeText.setText(`Time: ${pad(minutes)}:${pad(seconds)}`);
     }
 
     private speedUpJump(): void {
