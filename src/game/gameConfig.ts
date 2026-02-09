@@ -22,9 +22,9 @@ const gameConfigs: Record<GameCode, GameConfig> = {
     },
     train_game: {
         code: 'train_game',
-        label: 'Train Game',
+        label: 'Nối Đuôi Xe Lửa',
         mapKey: 'bg-train',
-        mapPath: 'maps/chr bg.png',
+        mapPath: 'background copy 2.png',
         assetRoot: 'games/train',
         backgroundColor: 0xf59e0b,
         useTexturePath: false

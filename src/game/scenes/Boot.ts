@@ -32,16 +32,30 @@ export class Boot extends Scene
         // Load only minimal assets needed for Preloader UI
         // These should be small file sizes as there's no progress bar yet
 
-        // Parallax background layers for loader
-        this.load.image('bg-1', `${assetRoot}/backgrounds/1.png`);
-        this.load.image('bg-2', `${assetRoot}/backgrounds/2.png`);
-        this.load.image('bg-3', `${assetRoot}/backgrounds/3.png`);
-        this.load.image('bg-4', `${assetRoot}/backgrounds/4.png`);
-        this.load.image('bg-5', `${assetRoot}/backgrounds/5.png`);
-        this.load.image('bg-6', `${assetRoot}/backgrounds/6.png`);
+        if (gameConfig.code === 'train_game') {
+            // Train assets don't include layered backgrounds; reuse the same image.
+            const loaderBg = `${assetRoot}/background.png`;
+            this.load.image('bg-1', loaderBg);
+            this.load.image('bg-2', loaderBg);
+            this.load.image('bg-3', loaderBg);
+            this.load.image('bg-4', loaderBg);
+            this.load.image('bg-5', loaderBg);
+            this.load.image('bg-6', loaderBg);
 
-        // Logo for branding during load
-        this.load.image('logo', `${assetRoot}/ui/logo.png`);
+            // Logo for branding during load
+            this.load.image('logo', `${assetRoot}/game 1 exp.png`);
+        } else {
+            // Parallax background layers for loader
+            this.load.image('bg-1', `${assetRoot}/backgrounds/1.png`);
+            this.load.image('bg-2', `${assetRoot}/backgrounds/2.png`);
+            this.load.image('bg-3', `${assetRoot}/backgrounds/3.png`);
+            this.load.image('bg-4', `${assetRoot}/backgrounds/4.png`);
+            this.load.image('bg-5', `${assetRoot}/backgrounds/5.png`);
+            this.load.image('bg-6', `${assetRoot}/backgrounds/6.png`);
+
+            // Logo for branding during load
+            this.load.image('logo', `${assetRoot}/ui/logo.png`);
+        }
     }
 
     create ()

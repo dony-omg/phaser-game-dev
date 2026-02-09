@@ -124,50 +124,62 @@ export class Preloader extends Scene
         // Ensure assets resolve from site root even on /game/* routes
         this.load.setPath('/assets');
 
-        // ==================== UI ASSETS ====================
-        this.load.image('star', `${assetRoot}/ui/star.png`);
-        this.load.image('ui-example', `${assetRoot}/ui/example.png`);
+        if (gameConfig.code === 'train_game') {
+            // ==================== TRAIN GAME ASSETS ====================
+            this.load.image('train-bg', `${assetRoot}/background copy 2.png`);
+            this.load.image('train-engine', `${assetRoot}/train.png`);
 
-        // ==================== GAMEPLAY ASSETS ====================
-        this.load.image('bg-1', `${assetRoot}/backgrounds/1.png`);
-        this.load.image('bg-2', `${assetRoot}/backgrounds/2.png`);
-        this.load.image('bg-3', `${assetRoot}/backgrounds/3.png`);
-        this.load.image('bg-4', `${assetRoot}/backgrounds/4.png`);
-        this.load.image('bg-5', `${assetRoot}/backgrounds/5.png`);
-        this.load.image('bg-6', `${assetRoot}/backgrounds/6.png`);
-        this.load.image(gameConfig.mapKey, `${assetRoot}/${gameConfig.mapPath}`);
+            for (let i = 1; i <= 11; i += 1) {
+                this.load.image(`train-car-${i}`, `${assetRoot}/Train/${i}.png`);
+            }
 
-        // ==================== CHARACTER ASSETS ====================
-        this.load.spritesheet('character', `${assetRoot}/characters/character animation tran.png`, {
-            frameWidth: 515,
-            frameHeight: 1128,
-            margin: 15
-        });
-        // char-jump.png is not present in assets; skip loading to avoid load error
-        this.load.image('char-emotes', `${assetRoot}/characters/char-emotes.png`);
+            this.load.image(gameConfig.mapKey, `${assetRoot}/${gameConfig.mapPath}`);
+        } else {
+            // ==================== UI ASSETS ====================
+            this.load.image('star', `${assetRoot}/ui/star.png`);
+            this.load.image('ui-example', `${assetRoot}/ui/example.png`);
 
-        // ==================== EMOTE ASSETS ====================
-        // Legacy emotes
-        this.load.image('emote-tran-idle', `${assetRoot}/emotes/emo tran .png`);
-        this.load.image('emote-tran-idle-flipped', `${assetRoot}/emotes/emo tran flipped idle.png`);
-        this.load.image('emote-tran-correct', `${assetRoot}/emotes/emo tran correct.png`);
-        this.load.image('emote-tran-correct-flipped', `${assetRoot}/emotes/emo tran flipped correct.png`);
-        this.load.image('emote-tran-incorrect', `${assetRoot}/emotes/emo tran incorrect.png`);
-        this.load.image('emote-tran-incorrect-flipped', `${assetRoot}/emotes/emo tran flipped incorrect.png`);
+            // ==================== GAMEPLAY ASSETS ====================
+            this.load.image('bg-1', `${assetRoot}/backgrounds/1.png`);
+            this.load.image('bg-2', `${assetRoot}/backgrounds/2.png`);
+            this.load.image('bg-3', `${assetRoot}/backgrounds/3.png`);
+            this.load.image('bg-4', `${assetRoot}/backgrounds/4.png`);
+            this.load.image('bg-5', `${assetRoot}/backgrounds/5.png`);
+            this.load.image('bg-6', `${assetRoot}/backgrounds/6.png`);
+            this.load.image(gameConfig.mapKey, `${assetRoot}/${gameConfig.mapPath}`);
 
-        // ==================== TILE ASSETS ====================
-        this.load.image('tile-1', `${assetRoot}/tiles/1.png`);
-        this.load.image('tile-2', `${assetRoot}/tiles/2.png`);
-        this.load.image('tile-3', `${assetRoot}/tiles/3.png`);
-        this.load.image('tile-4', `${assetRoot}/tiles/4.png`);
-        this.load.image('tile-5', `${assetRoot}/tiles/5.png`);
-        this.load.image('tile-6', `${assetRoot}/tiles/6.png`);
-        this.load.image('tile-flower', `${assetRoot}/tiles/flower.png`);
-        this.load.image('tile-green', `${assetRoot}/tiles/green.png`);
-        this.load.image('tile-shadow', `${assetRoot}/tiles/shadoe.png`);
+            // ==================== CHARACTER ASSETS ====================
+            this.load.spritesheet('character', `${assetRoot}/characters/character animation tran.png`, {
+                frameWidth: 515,
+                frameHeight: 1128,
+                margin: 15
+            });
+            // char-jump.png is not present in assets; skip loading to avoid load error
+            this.load.image('char-emotes', `${assetRoot}/characters/char-emotes.png`);
 
-        // ==================== MAP ASSETS ====================
-        this.load.image('map-all', `${assetRoot}/maps/All map.png`);
+            // ==================== EMOTE ASSETS ====================
+            // Legacy emotes
+            this.load.image('emote-tran-idle', `${assetRoot}/emotes/emo tran .png`);
+            this.load.image('emote-tran-idle-flipped', `${assetRoot}/emotes/emo tran flipped idle.png`);
+            this.load.image('emote-tran-correct', `${assetRoot}/emotes/emo tran correct.png`);
+            this.load.image('emote-tran-correct-flipped', `${assetRoot}/emotes/emo tran flipped correct.png`);
+            this.load.image('emote-tran-incorrect', `${assetRoot}/emotes/emo tran incorrect.png`);
+            this.load.image('emote-tran-incorrect-flipped', `${assetRoot}/emotes/emo tran flipped incorrect.png`);
+
+            // ==================== TILE ASSETS ====================
+            this.load.image('tile-1', `${assetRoot}/tiles/1.png`);
+            this.load.image('tile-2', `${assetRoot}/tiles/2.png`);
+            this.load.image('tile-3', `${assetRoot}/tiles/3.png`);
+            this.load.image('tile-4', `${assetRoot}/tiles/4.png`);
+            this.load.image('tile-5', `${assetRoot}/tiles/5.png`);
+            this.load.image('tile-6', `${assetRoot}/tiles/6.png`);
+            this.load.image('tile-flower', `${assetRoot}/tiles/flower.png`);
+            this.load.image('tile-green', `${assetRoot}/tiles/green.png`);
+            this.load.image('tile-shadow', `${assetRoot}/tiles/shadoe.png`);
+
+            // ==================== MAP ASSETS ====================
+            this.load.image('map-all', `${assetRoot}/maps/All map.png`);
+        }
     }
 
     private createParallaxLoaderBackground ()
@@ -193,16 +205,22 @@ export class Preloader extends Scene
             console.warn('Assets failed to load:', this.loadErrors);
         }
 
-        // Create global animations here if needed
-        this.createGlobalAnimations();
-
         const gameCode = this.registry.get('gameCode') as string | undefined;
+
+        // Create global animations here if needed
+        if (getGameConfig(gameCode).code !== 'train_game') {
+            this.createGlobalAnimations();
+        }
 
         // Skip MainMenu and go straight into Game
         this.time.delayedCall(300, () => {
             this.cameras.main.fadeOut(200, 0, 0, 0);
             this.cameras.main.once('camerafadeoutcomplete', () => {
-                this.scene.start('Game', { gameCode });
+                if (getGameConfig(gameCode).code === 'train_game') {
+                    this.scene.start('TrainGame', { gameCode });
+                } else {
+                    this.scene.start('Game', { gameCode });
+                }
             });
         });
     }

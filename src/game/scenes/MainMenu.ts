@@ -100,7 +100,8 @@ export class MainMenu extends Scene
         startGameSession(gameConfig.code)
             .then((res) => {
                 const data = res.data;
-                this.scene.start('Game', {
+                const nextScene = gameConfig.code === 'train_game' ? 'TrainGame' : 'Game';
+                this.scene.start(nextScene, {
                     gameCode: this.gameCode,
                     gameId: data.game_id,
                     questions: data.game_session_questions,
@@ -109,7 +110,8 @@ export class MainMenu extends Scene
             })
             .catch((err) => {
                 console.error('startGameSession failed, fallback to local questions', err);
-                this.scene.start('Game', {
+                const nextScene = gameConfig.code === 'train_game' ? 'TrainGame' : 'Game';
+                this.scene.start(nextScene, {
                     gameCode: this.gameCode,
                     gameId: null,
                     questions: null,

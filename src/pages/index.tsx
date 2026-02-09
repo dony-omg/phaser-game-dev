@@ -15,10 +15,51 @@ export default function Home() {
                 <link rel="icon" href="/favicon.png" />
             </Head>
             <main className={`${styles.main} ${inter.className}`}>
-                <div style={{ display: "flex", flexDirection: "column", gap: 16, alignItems: "center" }}>
-                    <h1 style={{ fontSize: 32, margin: 0 }}>Chọn game</h1>
-                    <Link href="/game/tower">Tower</Link>
-                    <Link href="/game/train">Train Game</Link>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                    <div
+                        style={{
+                            position: "relative",
+                            width: "min(720px, 92vw)"
+                        }}
+                    >
+                        <img
+                            src="/assets/ui/game-list.png"
+                            alt="Mini Games"
+                            style={{
+                                width: "100%",
+                                height: "auto",
+                                display: "block"
+                            }}
+                        />
+                        {/* Train Game hotspot (first card) */}
+                        <Link
+                            href="/game/train"
+                            aria-label="Train Game"
+                            style={{
+                                position: "absolute",
+                                left: "10%",
+                                top: "26%",
+                                width: "80%",
+                                height: "12.5%",
+                                borderRadius: 24,
+                                display: "block"
+                            }}
+                        />
+                        {/* Tower hotspot (last card) */}
+                        <Link
+                            href="/game/tower"
+                            aria-label="Tower"
+                            style={{
+                                position: "absolute",
+                                left: "10%",
+                                top: "80%",
+                                width: "80%",
+                                height: "12.5%",
+                                borderRadius: 24,
+                                display: "block"
+                            }}
+                        />
+                    </div>
                 </div>
             </main>
         </>
