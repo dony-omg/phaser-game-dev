@@ -11,6 +11,10 @@ export class Game extends Scene
     uiRoot!: Phaser.GameObjects.Container;
     uiCamera!: Phaser.Cameras.Scene2D.Camera;
     timerOverlay!: Phaser.GameObjects.Container;
+    hudBackButton!: Phaser.GameObjects.Container;
+    hudPointsPill!: Phaser.GameObjects.Container;
+    hudTimerPill!: Phaser.GameObjects.Container;
+    hudHeartsPill!: Phaser.GameObjects.Container;
 
     // UI
     jumpButton: Phaser.GameObjects.Container;
@@ -130,23 +134,76 @@ export class Game extends Scene
         // Fixed UI Container
         this.uiRoot = this.add.container(0, 0).setScrollFactor(0).setDepth(100);
 
-        // Score
-        this.scoreText = this.add.text(20, 40, 'Score: 0', {
-            fontFamily: 'Arial Black', fontSize: '32px', color: '#f8fafc',
-            stroke: '#000000', strokeThickness: 4
-        });
-        this.uiRoot.add(this.scoreText);
-
-        // Timer (HUD header)
+        // Timer + Score HUD
         this.timerOverlay = this.add.container(0, 0).setScrollFactor(0).setDepth(2000);
 
-        this.timerText = this.add.text(width - 20, 40, '03:00', {
-            fontFamily: 'Arial Black', fontSize: '28px', color: '#f8fafc',
-            stroke: '#000000', strokeThickness: 4
-        }).setOrigin(1, 0.5);
+        // Back button
+        this.hudBackButton = this.add.container(0, 0);
+        const backBg = this.add.graphics();
+        backBg.fillStyle(0xffffff, 0.95);
+        backBg.fillRoundedRect(-24, -24, 48, 48, 14);
+        backBg.lineStyle(2, 0x0ea5e9, 0.2);
+        backBg.strokeRoundedRect(-24, -24, 48, 48, 14);
+        const backIcon = this.add.text(0, 1, '<', {
+            fontFamily: 'Arial Black',
+            fontSize: '28px',
+            color: '#0f172a'
+        }).setOrigin(0.5);
+        this.hudBackButton.add([backBg, backIcon]);
+        this.hudBackButton.setSize(48, 48);
 
-        this.timerOverlay.add([this.timerText]);
+        // Points pill
+        this.hudPointsPill = this.add.container(0, 0);
+        const pointsBg = this.add.graphics();
+        const pointsW = 170;
+        const pointsH = 44;
+        pointsBg.fillStyle(0xe0f2fe, 0.98);
+        pointsBg.fillRoundedRect(-pointsW / 2, -pointsH / 2, pointsW, pointsH, 22);
+        pointsBg.lineStyle(2, 0x93c5fd, 0.7);
+        pointsBg.strokeRoundedRect(-pointsW / 2, -pointsH / 2, pointsW, pointsH, 22);
+        const star = this.add.image(-pointsW / 2 + 24, 0, 'star').setScale(0.32).setTint(0xfbbf24);
+        this.scoreText = this.add.text(-pointsW / 2 + 46, 0, 'POINTS: 00', {
+            fontFamily: 'Arial Black',
+            fontSize: '18px',
+            color: '#0f172a'
+        }).setOrigin(0, 0.5);
+        this.hudPointsPill.add([pointsBg, star, this.scoreText]);
+
+        // Timer pill
+        this.hudTimerPill = this.add.container(0, 0);
+        const timerBg = this.add.graphics();
+        const timerW = 100;
+        const timerH = 40;
+        timerBg.fillStyle(0xdbeafe, 0.98);
+        timerBg.fillRoundedRect(-timerW / 2, -timerH / 2, timerW, timerH, 20);
+        timerBg.lineStyle(2, 0x60a5fa, 0.6);
+        timerBg.strokeRoundedRect(-timerW / 2, -timerH / 2, timerW, timerH, 20);
+        this.timerText = this.add.text(0, 0, '03:00', {
+            fontFamily: 'Arial Black',
+            fontSize: '18px',
+            color: '#0f172a'
+        }).setOrigin(0.5);
+        this.hudTimerPill.add([timerBg, this.timerText]);
+
+        // Hearts pill
+        this.hudHeartsPill = this.add.container(0, 0);
+        const heartsBg = this.add.graphics();
+        const heartsW = 92;
+        const heartsH = 36;
+        heartsBg.fillStyle(0xffffff, 0.98);
+        heartsBg.fillRoundedRect(-heartsW / 2, -heartsH / 2, heartsW, heartsH, 18);
+        heartsBg.lineStyle(2, 0x93c5fd, 0.35);
+        heartsBg.strokeRoundedRect(-heartsW / 2, -heartsH / 2, heartsW, heartsH, 18);
+        const heartsText = this.add.text(0, 0, '❤ ❤ ❤', {
+            fontFamily: 'Arial Black',
+            fontSize: '16px',
+            color: '#ef4444'
+        }).setOrigin(0.5);
+        this.hudHeartsPill.add([heartsBg, heartsText]);
+
+        this.timerOverlay.add([this.hudBackButton, this.hudPointsPill, this.hudTimerPill, this.hudHeartsPill]);
         this.uiRoot.add(this.timerOverlay);
+        this.layoutHud();
 
         // Jump Button
         this.jumpButton = this.createJumpButton(width / 2, height - 150);
@@ -161,6 +218,7 @@ export class Game extends Scene
         this.createQuizModal();
         this.scale.on('resize', () => {
             if (this.quizModal) this.layoutQuiz();
+            this.layoutHud();
         });
 
         // Start Modal (first screen)
@@ -175,6 +233,23 @@ export class Game extends Scene
 
         // Time Up Modal
         this.createTimeUpModal();
+    }
+
+    private layoutHud(): void {
+        if (!this.hudBackButton || !this.hudPointsPill || !this.hudTimerPill || !this.hudHeartsPill) return;
+        const { width, height } = this.scale;
+        const topInset = Math.max(20, Math.round(height * 0.03));
+        const sideInset = Math.max(16, Math.round(width * 0.045));
+        const gap = 10;
+        const heartsW = 92;
+        const timerW = 100;
+
+        this.hudBackButton.setPosition(sideInset + 24, topInset + 24);
+        this.hudPointsPill.setPosition(width / 2, topInset + 24);
+
+        const rightEdge = width - sideInset;
+        this.hudHeartsPill.setPosition(rightEdge - heartsW / 2, topInset + 24);
+        this.hudTimerPill.setPosition(rightEdge - heartsW - gap - timerW / 2, topInset + 24);
     }
 
     createJumpButton(x: number, y: number) {
@@ -255,14 +330,14 @@ export class Game extends Scene
 
         this.quizIndexText = this.add.text(0, 0, 'Câu 1/4', {
             fontFamily: 'Arial Black',
-            fontSize: '16px',
-            color: '#fcd34d'
+            fontSize: '14px',
+            color: '#38bdf8'
         }).setOrigin(0.5, 0);
 
         this.quizQuestionText = this.add.text(0, 0, '...', {
             fontFamily: 'Arial Black',
-            fontSize: '30px',
-            color: '#f8fafc',
+            fontSize: '28px',
+            color: '#0f172a',
             align: 'center',
             wordWrap: { width: 600, useAdvancedWrap: true }
         }).setOrigin(0.5, 0);
@@ -683,37 +758,21 @@ export class Game extends Scene
     }
 
     private createQuizOption(x: number, y: number, index: number): Phaser.GameObjects.Container {
-        const label = ['A', 'B', 'C', 'D'][index];
         const container = this.add.container(x, y);
 
-        const width = 660;
-        const height = 56;
-        const radius = 16;
-        const palette = [0xe53935, 0x1e88e5, 0xfbc02d, 0x43a047];
-        const baseColor = palette[index % palette.length];
-
-        const glow = this.add.graphics();
-        glow.fillStyle(baseColor, 0.18);
-        glow.fillRoundedRect(-width / 2 + 6, -height / 2 + 10, width, height, radius + 4);
+        const width = 640;
+        const height = 54;
+        const radius = 22;
+        const baseColor = 0x38bdf8;
 
         const shadow = this.add.graphics();
-        shadow.fillStyle(0x000000, 0.18);
-        shadow.fillRoundedRect(-width / 2 + 4, -height / 2 + 6, width, height, radius);
-
         const bg = this.add.graphics();
-        const badge = this.add.graphics();
 
-        const labelText = this.add.text(-width / 2 + 32, 0, label, {
+        const text = this.add.text(0, 0, '...', {
             fontFamily: 'Arial Black',
-            fontSize: '16px',
-            color: '#111827'
+            fontSize: '20px',
+            color: '#ffffff'
         }).setOrigin(0.5);
-
-        const text = this.add.text(-width / 2 + 70, 0, `${label}. ...`, {
-            fontFamily: 'Arial',
-            fontSize: '21px',
-            color: '#f8fafc'
-        }).setOrigin(0, 0.5);
 
         const hitPad = 12;
         const zone = this.add.zone(0, 0, width + hitPad * 2, height + hitPad * 2)
@@ -727,34 +786,30 @@ export class Game extends Scene
             const drawR = layout?.radius ?? radius;
 
             let fill = baseColor;
-            let stroke = 0xffffff;
-            let badgeFill = 0xffffff;
+            let stroke = 0x7dd3fc;
 
             if (state === 'correct') {
-                fill = 0x16a34a;
+                fill = 0x22c55e;
                 stroke = 0x86efac;
-                badgeFill = 0x86efac;
             } else if (state === 'wrong') {
-                fill = 0xdc2626;
+                fill = 0xef4444;
                 stroke = 0xfca5a5;
-                badgeFill = 0xfca5a5;
             }
+
+            shadow.clear();
+            shadow.fillStyle(0x000000, 0.18);
+            shadow.fillRoundedRect(drawX + 2, -drawH / 2 + 4, drawW, drawH, drawR);
 
             bg.clear();
             bg.fillStyle(fill, 1);
             bg.fillRoundedRect(drawX, -drawH / 2, drawW, drawH, drawR);
-            bg.lineStyle(2, stroke, 0.8);
+            bg.lineStyle(2, stroke, 0.9);
             bg.strokeRoundedRect(drawX, -drawH / 2, drawW, drawH, drawR);
-
-            badge.clear();
-            badge.fillStyle(badgeFill, 1);
-            badge.fillRoundedRect(drawX + 10, -drawH / 2 + 10, 30, drawH - 20, 10);
         };
 
         redraw('normal');
-        glow.setVisible(false);
 
-        container.add([glow, shadow, bg, badge, labelText, text, zone]);
+        container.add([shadow, bg, text, zone]);
         container.setSize(width, height);
 
         const onPress = () => {
@@ -769,13 +824,7 @@ export class Game extends Scene
 
         container.setData('redraw', redraw);
         container.setData('text', text);
-        container.setData('glow', glow);
-        container.setData('bg', bg);
-        container.setData('badge', badge);
-        container.setData('badgeText', labelText);
         container.setData('hit', zone);
-        container.setData('baseColor', baseColor);
-        container.setData('hoverColor', baseColor);
 
         return container;
     }
@@ -792,16 +841,14 @@ export class Game extends Scene
         this.quizOptionButtons.forEach((btn, i) => {
             const redraw = btn.getData('redraw') as (state: 'normal' | 'correct' | 'wrong') => void;
             const text = btn.getData('text') as Phaser.GameObjects.Text;
-            const glow = btn.getData('glow') as Phaser.GameObjects.Graphics | undefined;
 
             redraw('normal');
-            glow?.setVisible(false);
-            text.setFontSize(21);
-            text.setText(`${['A', 'B', 'C', 'D'][i]}. ${data.options[i] ?? ''}`);
+            text.setFontSize(20);
+            text.setText(`${data.options[i] ?? ''}`);
 
             // Auto-shrink long answers for mobile
-            if (text.width > 520) text.setFontSize(19);
-            if (text.width > 560) text.setFontSize(18);
+            if (text.width > 520) text.setFontSize(18);
+            if (text.width > 560) text.setFontSize(17);
         });
 
         this.layoutQuiz();
@@ -823,8 +870,8 @@ export class Game extends Scene
         this.quizQuestionText.setWordWrapWidth(questionWrap, true);
 
         // Auto-reduce question font until layout fits
-        let fontSize = 30;
-        const minFont = 22;
+        let fontSize = 28;
+        const minFont = 20;
         let panelHeight = 0;
 
         while (fontSize >= minFont) {
@@ -908,17 +955,17 @@ export class Game extends Scene
 
         // Draw panel
         this.quizPanelShadow.clear();
-        this.quizPanelShadow.fillStyle(0x000000, 0.35);
+        this.quizPanelShadow.fillStyle(0x000000, 0.18);
         this.quizPanelShadow.fillRoundedRect(-panelWidth / 2 + 8, -panelHeight / 2 + 14, panelWidth, panelHeight, 28);
 
         this.quizPanelBg.clear();
-        this.quizPanelBg.fillStyle(0x111827, 0.95);
+        this.quizPanelBg.fillStyle(0xf8fbff, 0.92);
         this.quizPanelBg.fillRoundedRect(-panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight, 28);
-        this.quizPanelBg.lineStyle(2, 0xffffff, 0.4);
+        this.quizPanelBg.lineStyle(2, 0x93c5fd, 0.6);
         this.quizPanelBg.strokeRoundedRect(-panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight, 28);
 
         this.quizPanelGlow.clear();
-        this.quizPanelGlow.fillStyle(0x1f2937, 0.9);
+        this.quizPanelGlow.fillStyle(0xe0f2fe, 0.5);
         this.quizPanelGlow.fillRoundedRect(-panelWidth / 2 + 10, -panelHeight / 2 + 10, panelWidth - 20, panelHeight - 20, 20);
 
         // Header + question positions
@@ -936,26 +983,13 @@ export class Game extends Scene
 
             btn.setPosition(0, y);
 
-            const bg = btn.getData('bg') as Phaser.GameObjects.Graphics;
-            const badge = btn.getData('badge') as Phaser.GameObjects.Graphics;
-            const badgeText = btn.getData('badgeText') as Phaser.GameObjects.Text;
             const text = btn.getData('text') as Phaser.GameObjects.Text;
-            const baseColor = btn.getData('baseColor') as number;
+            const redraw = btn.getData('redraw') as (state: 'normal' | 'correct' | 'wrong') => void;
 
-            btn.setData('layout', { x, w, h: buttonHeight, radius: 16 });
+            btn.setData('layout', { x, w, h: buttonHeight, radius: 22 });
 
-            bg.clear();
-            bg.fillStyle(baseColor, 1);
-            bg.fillRoundedRect(x, -buttonHeight / 2, w, buttonHeight, 16);
-            bg.lineStyle(2, 0xffffff, 0.8);
-            bg.strokeRoundedRect(x, -buttonHeight / 2, w, buttonHeight, 16);
-
-            badge.clear();
-            badge.fillStyle(0xffffff, 1);
-            badge.fillRoundedRect(x + 10, -buttonHeight / 2 + 10, 30, buttonHeight - 20, 10);
-
-            badgeText.setPosition(x + 25, 0);
-            text.setPosition(x + 55, 0);
+            redraw('normal');
+            text.setPosition(x + w / 2, 0);
 
             const hit = btn.getData('hit') as Phaser.GameObjects.Zone;
             const hitPad = 10;
@@ -1017,7 +1051,7 @@ export class Game extends Scene
         const isCorrect = index === question.correctIndex;
 
         const btn = this.quizOptionButtons[index];
-        const redraw = btn.getData('redraw') as (state: 'normal' | 'hover' | 'correct' | 'wrong') => void;
+        const redraw = btn.getData('redraw') as (state: 'normal' | 'correct' | 'wrong') => void;
 
         if (isCorrect) {
             this.quizLocked = true;
@@ -1163,7 +1197,7 @@ export class Game extends Scene
         const minutes = Math.floor(totalSeconds / 60);
         const seconds = totalSeconds % 60;
         const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
-        const text = `${pad(minutes)}:${pad(seconds)}`;
+        const text = `${minutes}m ${pad(seconds)}s`;
         this.timerText.setText(text);
     }
 
@@ -1289,7 +1323,7 @@ export class Game extends Scene
         this.quizCurrentIndex = 0;
         this.startModalOpen = false;
         this.score = 0;
-        this.scoreText.setText('Score: 0');
+        this.scoreText.setText('POINTS: 00');
         this.jumpDurationMs = 900;
 
         this.closeTimeUpModal();
@@ -1316,7 +1350,8 @@ export class Game extends Scene
 
     private updateScore(delta: number): void {
         this.score += delta;
-        this.scoreText.setText(`Score: ${this.score}`);
+        const points = Math.max(0, this.score);
+        this.scoreText.setText(`POINTS: ${points.toString().padStart(2, '0')}`);
         if (this.endModalScoreText) {
             this.endModalScoreText.setText(`Điểm: ${this.score}`);
         }
