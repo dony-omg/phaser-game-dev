@@ -560,7 +560,8 @@ export class TrainGame extends Scene
             { x: 250, y: 740 },
             { x: 220, y: 920 },
             { x: 270, y: 1100 },
-            { x: 430, y: 1280 }
+            { x: 450, y: 1280 },
+            { x: 500, y: 1500 }
         ].map((p) => new Phaser.Math.Vector2(p.x * scaleX, p.y * scaleY));
 
         return new Phaser.Curves.Spline(points);
@@ -649,7 +650,12 @@ export class TrainGame extends Scene
             }
         }
 
-        return { startT, endT };
+        const startExtend = 0.04;
+        const endExtend = 0.0;
+        return {
+            startT: Math.max(0, startT - startExtend),
+            endT: Math.min(1, endT + endExtend)
+        };
     }
 
     private getTrackAngle (points: { x: number; y: number }[], index: number)
