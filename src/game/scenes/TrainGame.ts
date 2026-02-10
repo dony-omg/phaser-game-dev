@@ -606,11 +606,14 @@ export class TrainGame extends Scene
         this.score = this.currentIndex;
         this.refreshLocks();
 
-        this.moveTrainToIndex(this.currentIndex, () => {
-            if (this.currentIndex >= this.maxCars) {
+        if (this.currentIndex >= this.maxCars) {
+            this.moveTrainToEnd(() => {
                 this.endGame(`Hoàn thành đủ ${this.maxCars} toa!`, 'win');
-                return;
-            }
+            });
+            return;
+        }
+
+        this.moveTrainToIndex(this.currentIndex, () => {
             this.openQuestion(this.currentIndex);
         });
     }
@@ -631,7 +634,40 @@ export class TrainGame extends Scene
         const maxDistance = Math.max(0, this.railTotalLength - 1);
         const targetDistance = Math.min(this.trainStepPx * visualIndex, maxDistance);
         const delta = Math.abs(targetDistance - this.trainDistancePx);
-        const duration = Phaser.Math.Clamp(Math.round(320 + delta * 1.4), 450, 900);
+        const duration = Phaser.Math.Clamp(Math.round(420 + delta * 1.8), 650, 1200);
+
+        this.trainMoving = true;
+        const tweenState = { value: this.trainDistancePx };
+        this.tweens.add({
+            targets: tweenState,
+            value: targetDistance,
+            duration,
+            ease: 'Sine.easeInOut',
+            onUpdate: () => {
+                this.trainDistancePx = tweenState.value;
+                this.updateTrainCars(true);
+            },
+            onComplete: () => {
+                this.trainDistancePx = targetDistance;
+                this.trainMoving = false;
+                this.updateTrainCars(true);
+                if (onComplete) onComplete();
+            }
+        });
+    }
+
+    private moveTrainToEnd (onComplete?: () => void)
+    {
+        if (this.railTotalLength <= 0) {
+            if (onComplete) onComplete();
+            return;
+        }
+
+        const maxDistance = Math.max(0, this.railTotalLength - 1);
+        const trainLength = Math.max(0, (this.maxCars - 1) * this.trainGapPx);
+        const targetDistance = maxDistance + trainLength;
+        const delta = Math.abs(targetDistance - this.trainDistancePx);
+        const duration = Phaser.Math.Clamp(Math.round(520 + delta * 1.6), 800, 1800);
 
         this.trainMoving = true;
         const tweenState = { value: this.trainDistancePx };
@@ -830,7 +866,7 @@ export class TrainGame extends Scene
         this.railTotalLength = total;
     }
 
-    private sampleRailByDistance (distancePx: number)
+    private sampleRailByDistanceNoWrap (distancePx: number)
     {
         if (this.railPathPoints.length < 2 || this.railTotalLength <= 0) {
             return {
@@ -840,7 +876,24 @@ export class TrainGame extends Scene
         }
 
         const total = this.railTotalLength;
-        let remaining = ((distancePx % total) + total) % total;
+        if (distancePx <= 0) {
+            const start = this.railPathPoints[0];
+            const next = this.railPathPoints[1];
+            const angle = Math.atan2(next.y - start.y, next.x - start.x);
+            const dir = new Phaser.Math.Vector2(Math.cos(angle), Math.sin(angle));
+            const pos = new Phaser.Math.Vector2(start.x, start.y).add(dir.scale(distancePx));
+            return { position: pos, angle };
+        }
+        if (distancePx >= total) {
+            const end = this.railPathPoints[this.railPathPoints.length - 1];
+            const prev = this.railPathPoints[this.railPathPoints.length - 2];
+            const angle = Math.atan2(end.y - prev.y, end.x - prev.x);
+            const dir = new Phaser.Math.Vector2(Math.cos(angle), Math.sin(angle));
+            const pos = new Phaser.Math.Vector2(end.x, end.y).add(dir.scale(distancePx - total));
+            return { position: pos, angle };
+        }
+
+        let remaining = distancePx;
         let segIndex = 0;
 
         while (segIndex < this.railSegmentLengths.length && remaining > this.railSegmentLengths[segIndex]) {
@@ -947,14 +1000,11 @@ export class TrainGame extends Scene
         if (!force && !this.trainMoving) return;
         if (this.railTotalLength <= 0) return;
 
-        const maxDistance = Math.max(0, this.railTotalLength - 1);
-
         for (let i = 0; i < this.carSlots.length; i += 1) {
             const slot = this.carSlots[i];
             const distanceFromBottom = this.trainDistancePx - i * this.trainGapPx;
-            const clamped = Phaser.Math.Clamp(distanceFromBottom, 0, maxDistance);
-            const mappedDistance = maxDistance - clamped;
-            const sample = this.sampleRailByDistance(mappedDistance);
+            const mappedDistance = Math.max(0, this.railTotalLength - 1) - distanceFromBottom;
+            const sample = this.sampleRailByDistanceNoWrap(mappedDistance);
             slot.car.setPosition(sample.position.x, sample.position.y);
             slot.car.setRotation(sample.angle + this.trainRotationOffset);
         }
