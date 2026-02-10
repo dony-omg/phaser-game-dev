@@ -131,13 +131,22 @@ const FALLBACK_QUESTIONS: GameQuestion[] = [
 
 export class TrainGame extends Scene
 {
-    private readonly debugTrack = false;
-    private readonly showCars = true;
+    private debugTrack = true;
+    private showCars = true;
     private trackSpline?: Phaser.Curves.Spline;
     private trainSprite?: Phaser.GameObjects.Image;
     private trainProgress: number = 0;
     private trainCarSpacing: number = 0.11;
+    private trackLength: number = 0;
+    private trainCarSpacingDistance: number = 0;
+    private readonly trainCarSpacingFactor = 0.95;
     private readonly trainRotationOffset = Phaser.Math.DegToRad(255);
+    private railwayContainer?: Phaser.GameObjects.Container;
+    private debugCurveGraphics?: Phaser.GameObjects.Graphics;
+    private debugMarkerGraphics?: Phaser.GameObjects.Graphics;
+    private debugMarkerLabels: Phaser.GameObjects.Text[] = [];
+    private showHoverCoords = false;
+    private hoverCoordText?: Phaser.GameObjects.Text;
     camera!: Phaser.Cameras.Scene2D.Camera;
     background!: Phaser.GameObjects.Image;
     carSlots: TrainCarSlot[] = [];
@@ -204,6 +213,8 @@ export class TrainGame extends Scene
         if (this.showCars) {
             this.layoutTrain();
         }
+        this.createDebugToggles();
+        this.setupHoverCoords();
         this.createQuizModal();
 
         EventBus.emit('current-scene-ready', this);
@@ -263,6 +274,87 @@ export class TrainGame extends Scene
         }).setOrigin(1, 0.5).setDepth(60);
     }
 
+    private createDebugToggles ()
+    {
+        const { width } = this.scale;
+        const startX = width - 220;
+        const startY = 110;
+        const gapY = 36;
+
+        this.createToggle(
+            startX,
+            startY,
+            'Hiện toa tàu',
+            () => this.showCars,
+            (value) => this.setShowCars(value)
+        );
+
+        this.createToggle(
+            startX,
+            startY + gapY,
+            'Hiện ray tàu',
+            () => this.isRailwayVisible(),
+            (value) => this.setRailwayVisible(value)
+        );
+
+        this.createToggle(
+            startX,
+            startY + gapY * 2,
+            'Hiện tọa độ hover',
+            () => this.showHoverCoords,
+            (value) => this.setShowHoverCoords(value)
+        );
+    }
+
+    private createToggle (
+        x: number,
+        y: number,
+        label: string,
+        getter: () => boolean,
+        setter: (value: boolean) => void
+    )
+    {
+        const container = this.add.container(x, y).setDepth(2000);
+        const box = this.add.rectangle(10, 12, 20, 20, 0x0f172a, 0.75);
+        box.setStrokeStyle(2, 0xfbbf24, 0.9);
+        const check = this.add.text(3, 2, '✓', {
+            fontFamily: 'Arial Black',
+            fontSize: '18px',
+            color: '#fbbf24'
+        });
+        const text = this.add.text(34, 2, label, {
+            fontFamily: 'Arial Black',
+            fontSize: '16px',
+            color: '#e2e8f0'
+        });
+
+        container.add([box, check, text]);
+        container.setSize(220, 24);
+        container.setInteractive(new Phaser.Geom.Rectangle(0, 0, 220, 24), Phaser.Geom.Rectangle.Contains);
+
+        const refresh = () => {
+            const enabled = getter();
+            check.setVisible(enabled);
+        };
+
+        refresh();
+
+        container.on('pointerdown', () => {
+            setter(!getter());
+            refresh();
+        });
+
+        container.on('pointerover', () => {
+            box.setFillStyle(0x1f2937, 0.9);
+            this.input.setDefaultCursor('pointer');
+        });
+
+        container.on('pointerout', () => {
+            box.setFillStyle(0x0f172a, 0.75);
+            this.input.setDefaultCursor('default');
+        });
+    }
+
     private layoutTrain ()
     {
         const { width, height } = this.scale;
@@ -289,6 +381,12 @@ export class TrainGame extends Scene
             const lock = this.createLockOverlay(point.x, point.y, car.displayWidth, car.displayHeight, i);
 
             this.carSlots.push({ index: i, car, lock });
+        }
+
+        if (this.trackLength > 0 && this.carSlots.length > 0) {
+            const referenceCar = this.carSlots[0].car;
+            this.trainCarSpacingDistance = referenceCar.displayWidth * this.trainCarSpacingFactor;
+            this.trainCarSpacing = this.trainCarSpacingDistance / this.trackLength;
         }
 
         this.refreshLocks();
@@ -552,16 +650,16 @@ export class TrainGame extends Scene
         const scaleY = height / baseHeight;
 
         const points = [
-            { x: 470, y: -200 },
-            { x: 440, y: -80 },
-            { x: 510, y: 180 },
+            { x: 405, y: 10 },
+            { x: 455, y: 85 },
+            { x: 515, y: 200 },
             { x: 485, y: 360 },
             { x: 375, y: 540 },
             { x: 250, y: 740 },
             { x: 220, y: 920 },
             { x: 270, y: 1100 },
-            { x: 450, y: 1280 },
-            { x: 500, y: 1500 }
+            { x: 325, y: 1185 },
+            { x: 505, y: 1325 }
         ].map((p) => new Phaser.Math.Vector2(p.x * scaleX, p.y * scaleY));
 
         return new Phaser.Curves.Spline(points);
@@ -573,7 +671,7 @@ export class TrainGame extends Scene
         const total = Math.max(1, count - 1);
         for (let i = 0; i < count; i += 1) {
             const t = total === 0 ? 0 : i / total;
-            const p = curve.getPoint(t);
+            const p = curve.getPointAt(t);
             points.push({ x: p.x, y: p.y });
         }
         return points;
@@ -595,6 +693,7 @@ export class TrainGame extends Scene
             graphics.lineTo(p.x, p.y);
         }
         graphics.strokePath();
+        this.debugCurveGraphics = graphics;
     }
 
     private drawCurveMarkers (curve: Phaser.Curves.Spline, count: number)
@@ -617,7 +716,8 @@ export class TrainGame extends Scene
             }
 
             graphics.fillCircle(clampedX, clampedY, 8);
-            const label = this.add.text(clampedX + 10, clampedY - 10, `${i + 1}`, {
+            const labelText = `${i + 1} (${Math.round(point.x)}, ${Math.round(point.y)})`;
+            const label = this.add.text(clampedX + 10, clampedY - 10, labelText, {
                 fontFamily: 'Arial Black',
                 fontSize: '18px',
                 color: '#22c55e',
@@ -625,7 +725,9 @@ export class TrainGame extends Scene
                 strokeThickness: 3
             });
             label.setDepth(1002);
+            this.debugMarkerLabels.push(label);
         }
+        this.debugMarkerGraphics = graphics;
     }
 
     private getVisibleTRange (curve: Phaser.Curves.Spline)
@@ -650,7 +752,7 @@ export class TrainGame extends Scene
             }
         }
 
-        const startExtend = 0.04;
+        const startExtend = 0.0;
         const endExtend = 0.0;
         return {
             startT: Math.max(0, startT - startExtend),
@@ -671,11 +773,16 @@ export class TrainGame extends Scene
         const { width, height } = this.scale;
         const spline = this.createTrackCurve(width, height);
         this.trackSpline = spline;
+        this.trackLength = spline.getLength();
+        this.trainCarSpacingDistance = this.trackLength * this.trainCarSpacing;
 
         const baseScale = Math.min(width / 750, height / 1334);
         const railOffset = 22 * baseScale;
         const sleeperWidth = railOffset * 2.2;
         const sleeperHeight = 8 * baseScale;
+
+        const railwayContainer = this.add.container(0, 0);
+        this.railwayContainer = railwayContainer;
 
         const railLeft: Phaser.Math.Vector2[] = [];
         const railRight: Phaser.Math.Vector2[] = [];
@@ -708,6 +815,7 @@ export class TrainGame extends Scene
         railRight.forEach((p) => rails.lineTo(p.x, p.y));
         rails.strokePath();
         rails.setDepth(5);
+        railwayContainer.add(rails);
 
         const sleeperCount = 28;
         for (let i = 0; i <= sleeperCount; i += 1) {
@@ -718,12 +826,16 @@ export class TrainGame extends Scene
             const sleeper = this.add.rectangle(point.x, point.y, sleeperWidth, sleeperHeight, 0xb45309, 0.95);
             sleeper.setRotation(angle);
             sleeper.setDepth(4);
+            railwayContainer.add(sleeper);
         }
 
         if (this.debugTrack) {
             this.drawTrackCurve(spline);
             this.drawCurveMarkers(spline, 11);
         }
+
+        this.setRailwayVisible(true);
+        this.setDebugTrackVisible(this.debugTrack);
 
         this.trainProgress = 1;
         this.tweens.add({
@@ -744,15 +856,90 @@ export class TrainGame extends Scene
 
         for (let i = 0; i < this.carSlots.length; i += 1) {
             const slot = this.carSlots[i];
-            const raw = this.trainProgress - i * this.trainCarSpacing;
-            const t = ((raw % 1) + 1) % 1;
-            const p = this.trackSpline.getPoint(t);
-            const tangent = this.trackSpline.getTangent(t).normalize();
+            const rawDistance = this.trainProgress * this.trackLength - i * this.trainCarSpacingDistance;
+            const wrappedDistance = ((rawDistance % this.trackLength) + this.trackLength) % this.trackLength;
+            const t = this.trackLength === 0 ? 0 : wrappedDistance / this.trackLength;
+            const p = this.trackSpline.getPointAt(t);
+            const tangent = this.trackSpline.getTangentAt(t).normalize();
             slot.car.setPosition(p.x, p.y);
             slot.car.setRotation(Math.atan2(tangent.y, tangent.x) + this.trainRotationOffset);
             slot.car.setAlpha(1);
             slot.lock.setVisible(false);
             slot.lock.disableInteractive();
+        }
+    }
+
+    private setShowCars (value: boolean)
+    {
+        this.showCars = value;
+        this.carSlots.forEach((slot) => {
+            slot.car.setVisible(value);
+            slot.lock.setVisible(false);
+        });
+        if (value) {
+            this.refreshLocks();
+            this.updateTrainCars();
+        }
+    }
+
+    private setRailwayVisible (value: boolean)
+    {
+        if (this.railwayContainer) {
+            this.railwayContainer.setVisible(value);
+        }
+        this.setDebugTrackVisible(value);
+    }
+
+    private isRailwayVisible ()
+    {
+        return this.railwayContainer?.visible ?? true;
+    }
+
+    private setDebugTrackVisible (value: boolean)
+    {
+        this.debugTrack = value;
+        if (this.debugCurveGraphics) {
+            this.debugCurveGraphics.setVisible(value);
+        }
+        if (this.debugMarkerGraphics) {
+            this.debugMarkerGraphics.setVisible(value);
+        }
+        this.debugMarkerLabels.forEach((label) => label.setVisible(value));
+    }
+
+    private setupHoverCoords ()
+    {
+        const text = this.add.text(12, 12, '', {
+            fontFamily: 'Arial Black',
+            fontSize: '16px',
+            color: '#f8fafc',
+            stroke: '#0f172a',
+            strokeThickness: 3
+        }).setDepth(2001).setVisible(false);
+        this.hoverCoordText = text;
+
+        this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+            if (!this.showHoverCoords || !this.hoverCoordText) return;
+            const x = Math.round(pointer.worldX);
+            const y = Math.round(pointer.worldY);
+            this.hoverCoordText.setText(`(${x}, ${y})`);
+            this.hoverCoordText.setPosition(pointer.x + 14, pointer.y + 14);
+        });
+
+        this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+            if (!this.showHoverCoords) return;
+            const x = Math.round(pointer.worldX);
+            const y = Math.round(pointer.worldY);
+            // eslint-disable-next-line no-console
+            console.log(`Hover click: (${x}, ${y})`);
+        });
+    }
+
+    private setShowHoverCoords (value: boolean)
+    {
+        this.showHoverCoords = value;
+        if (this.hoverCoordText) {
+            this.hoverCoordText.setVisible(value);
         }
     }
 
