@@ -137,7 +137,7 @@ export class TrainGame extends Scene
     private trackSpline?: Phaser.Curves.Spline;
     private trainSprite?: Phaser.GameObjects.Image;
     private trainDistancePx: number = 0;
-    private trainSpeedPxPerSec: number = 180;
+    private trainSpeedPxPerSec: number = -180;
     private trainGapPx: number = 0;
     private trackLength: number = 0;
     private readonly trainCarGapFactor = 0.68;
@@ -314,6 +314,14 @@ export class TrainGame extends Scene
             'Hiện tọa độ hover',
             () => this.showHoverCoords,
             (value) => this.setShowHoverCoords(value)
+        );
+
+        this.createToggle(
+            startX,
+            startY + gapY * 3,
+            'Tàu di chuyển',
+            () => this.trainMoving,
+            (value) => this.setTrainMoving(value)
         );
     }
 
@@ -1011,6 +1019,14 @@ export class TrainGame extends Scene
         this.showHoverCoords = value;
         if (this.hoverCoordText) {
             this.hoverCoordText.setVisible(value);
+        }
+    }
+
+    private setTrainMoving (value: boolean)
+    {
+        this.trainMoving = value;
+        if (!value) {
+            this.updateTrainCars(true);
         }
     }
 
