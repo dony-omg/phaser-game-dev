@@ -2,6 +2,7 @@ import { Scene } from 'phaser';
 import { EventBus } from '../EventBus';
 import type { GameQuestion } from '../../services/api';
 import { getGameConfig, resolveGameCode } from '../gameConfig';
+import { QuizPanel } from '../ui/QuizPanel';
 
 type TrainCarSlot = {
     index: number;
@@ -126,12 +127,23 @@ const FALLBACK_QUESTIONS: GameQuestion[] = [
                 { text: 'quickness', is_correct: false }
             ]
         }
+    },
+    {
+        question: {
+            content: 'Chọn câu hỏi phù hợp khi gặp người mới.',
+            options: [
+                { text: 'What is your name?', is_correct: true },
+                { text: 'Where do you live?', is_correct: false },
+                { text: 'How old are you?', is_correct: false },
+                { text: 'What time is it?', is_correct: false }
+            ]
+        }
     }
 ];
 
 export class TrainGame extends Scene
 {
-    private debugTrack = true;
+    private debugTrack = false;
     private showCars = true;
     private trainMoving = false;
     private trackSpline?: Phaser.Curves.Spline;
@@ -163,12 +175,13 @@ export class TrainGame extends Scene
     background!: Phaser.GameObjects.Image;
     carSlots: TrainCarSlot[] = [];
     quizModal!: Phaser.GameObjects.Container;
-    quizPanel!: Phaser.GameObjects.Container;
-    quizQuestionText!: Phaser.GameObjects.Text;
-    quizFeedbackText!: Phaser.GameObjects.Text;
-    quizOptionButtons: Phaser.GameObjects.Container[] = [];
+    quizPanel!: QuizPanel;
     timerText!: Phaser.GameObjects.Text;
     scoreText!: Phaser.GameObjects.Text;
+    hudBackButton!: Phaser.GameObjects.Container;
+    hudPointsPill!: Phaser.GameObjects.Container;
+    hudTimerPill!: Phaser.GameObjects.Container;
+    uiRoot!: Phaser.GameObjects.Container;
 
     gameCode: string = 'train_game';
     sessionGameId: string | null = null;
@@ -188,6 +201,8 @@ export class TrainGame extends Scene
     gameOver: boolean = false;
 
     private questions: GameQuestion[] = [];
+    private currentCorrectIndex: number = 0;
+    private trainStepPx: number = 0;
 
     constructor ()
     {
@@ -218,17 +233,22 @@ export class TrainGame extends Scene
         this.setupQuestions();
         this.setupTimer();
         this.createHud();
-        // Temporary: show full train without unlock flow
-        this.currentIndex = this.maxCars;
-        this.score = this.maxCars;
+        this.currentIndex = 0;
+        this.score = 0;
         this.createRailway();
         if (this.showCars) {
             this.layoutTrain();
             this.updateTrainCars(true);
         }
-        this.createDebugToggles();
-        this.setupHoverCoords();
         this.createQuizModal();
+        this.openQuestion(this.currentIndex);
+
+        this.scale.on('resize', () => {
+            const { width: newWidth, height: newHeight } = this.scale;
+            this.background.setPosition(newWidth / 2, newHeight / 2).setDisplaySize(newWidth, newHeight);
+            this.layoutHud();
+            this.layoutQuiz();
+        });
 
         EventBus.emit('current-scene-ready', this);
     }
@@ -248,10 +268,7 @@ export class TrainGame extends Scene
             this.endGame('Hết thời gian.', 'lose');
         }
 
-        if (this.trainMoving && this.railTotalLength > 0) {
-            this.trainDistancePx += (delta / 1000) * this.trainSpeedPxPerSec;
-            this.updateTrainCars();
-        }
+        this.updateTrainCars();
     }
 
     private setupQuestions ()
@@ -273,25 +290,72 @@ export class TrainGame extends Scene
 
     private createHud ()
     {
-        const { width } = this.scale;
+        this.uiRoot = this.add.container(0, 0).setDepth(2000);
 
-        const hudBg = this.add.rectangle(width / 2, 60, width - 48, 64, 0x0f172a, 0.6);
-        hudBg.setStrokeStyle(2, 0xfbbf24, 0.8);
-        hudBg.setDepth(50);
-
-        this.scoreText = this.add.text(40, 60, `Toa: 0/${this.maxCars}`, {
+        this.hudBackButton = this.add.container(0, 0);
+        const backBg = this.add.graphics();
+        backBg.fillStyle(0xffffff, 0.95);
+        backBg.fillRoundedRect(-22, -22, 44, 44, 14);
+        backBg.lineStyle(2, 0x0ea5e9, 0.2);
+        backBg.strokeRoundedRect(-22, -22, 44, 44, 14);
+        const backIcon = this.add.text(0, 1, '<', {
             fontFamily: 'Arial Black',
-            fontSize: '22px',
-            color: '#fef3c7'
-        }).setOrigin(0, 0.5).setDepth(60);
+            fontSize: '26px',
+            color: '#0f172a'
+        }).setOrigin(0.5);
+        this.hudBackButton.add([backBg, backIcon]);
+        this.hudBackButton.setSize(44, 44);
+        this.hudBackButton.setInteractive(new Phaser.Geom.Rectangle(-22, -22, 44, 44), Phaser.Geom.Rectangle.Contains);
+        this.hudBackButton.on('pointerdown', () => {
+            if (this.quizOpen) return;
+            this.scene.start('MainMenu');
+        });
 
-        this.timerText = this.add.text(width - 40, 60, this.formatTime(Math.ceil(this.remainingMs / 1000)), {
+        this.hudPointsPill = this.add.container(0, 0);
+        const pointsBg = this.add.graphics();
+        const pointsW = 168;
+        const pointsH = 44;
+        pointsBg.fillStyle(0xffffff, 0.98);
+        pointsBg.fillRoundedRect(-pointsW / 2, -pointsH / 2, pointsW, pointsH, 22);
+        pointsBg.lineStyle(2, 0xf59e0b, 0.4);
+        pointsBg.strokeRoundedRect(-pointsW / 2, -pointsH / 2, pointsW, pointsH, 22);
+        const star = this.add.image(-pointsW / 2 + 24, 0, 'star').setScale(0.32).setTint(0xfbbf24);
+        this.scoreText = this.add.text(-pointsW / 2 + 46, 0, 'POINTS: 00', {
             fontFamily: 'Arial Black',
-            fontSize: '22px',
-            color: '#e2e8f0'
-        }).setOrigin(1, 0.5).setDepth(60);
+            fontSize: '18px',
+            color: '#0f172a'
+        }).setOrigin(0, 0.5);
+        this.hudPointsPill.add([pointsBg, star, this.scoreText]);
 
+        this.hudTimerPill = this.add.container(0, 0);
+        const timerBg = this.add.graphics();
+        const timerW = 96;
+        const timerH = 40;
+        timerBg.fillStyle(0xffffff, 0.98);
+        timerBg.fillRoundedRect(-timerW / 2, -timerH / 2, timerW, timerH, 20);
+        timerBg.lineStyle(2, 0x94a3b8, 0.4);
+        timerBg.strokeRoundedRect(-timerW / 2, -timerH / 2, timerW, timerH, 20);
+        this.timerText = this.add.text(0, 0, this.formatTime(Math.ceil(this.remainingMs / 1000)), {
+            fontFamily: 'Arial Black',
+            fontSize: '16px',
+            color: '#0f172a'
+        }).setOrigin(0.5);
+        this.hudTimerPill.add([timerBg, this.timerText]);
+
+        this.uiRoot.add([this.hudBackButton, this.hudPointsPill, this.hudTimerPill]);
+        this.layoutHud();
         this.createTrafficLight();
+    }
+
+    private layoutHud ()
+    {
+        const { width, height } = this.scale;
+        const topInset = Math.max(16, Math.round(height * 0.03));
+        const sideInset = Math.max(14, Math.round(width * 0.04));
+        const rightEdge = width - sideInset;
+        this.hudBackButton.setPosition(sideInset + 22, topInset + 22);
+        this.hudPointsPill.setPosition(width / 2, topInset + 22);
+        this.hudTimerPill.setPosition(rightEdge - 48, topInset + 22);
     }
 
     private createTrafficLight ()
@@ -372,95 +436,6 @@ export class TrainGame extends Scene
         green.setVisible(color === 'green');
     }
 
-    private createDebugToggles ()
-    {
-        const { width } = this.scale;
-        const startX = width - 220;
-        const startY = 110;
-        const gapY = 36;
-
-        this.createToggle(
-            startX,
-            startY,
-            'Hiện toa tàu',
-            () => this.showCars,
-            (value) => this.setShowCars(value)
-        );
-
-        this.createToggle(
-            startX,
-            startY + gapY,
-            'Hiện ray tàu',
-            () => this.isRailwayVisible(),
-            (value) => this.setRailwayVisible(value)
-        );
-
-        this.createToggle(
-            startX,
-            startY + gapY * 2,
-            'Hiện tọa độ hover',
-            () => this.showHoverCoords,
-            (value) => this.setShowHoverCoords(value)
-        );
-
-        this.createToggle(
-            startX,
-            startY + gapY * 3,
-            'Tàu di chuyển',
-            () => this.trainMoving,
-            (value) => this.setTrainMoving(value)
-        );
-    }
-
-    private createToggle (
-        x: number,
-        y: number,
-        label: string,
-        getter: () => boolean,
-        setter: (value: boolean) => void
-    )
-    {
-        const container = this.add.container(x, y).setDepth(2000);
-        const box = this.add.rectangle(10, 12, 20, 20, 0x0f172a, 0.75);
-        box.setStrokeStyle(2, 0xfbbf24, 0.9);
-        const check = this.add.text(3, 2, '✓', {
-            fontFamily: 'Arial Black',
-            fontSize: '18px',
-            color: '#fbbf24'
-        });
-        const text = this.add.text(34, 2, label, {
-            fontFamily: 'Arial Black',
-            fontSize: '16px',
-            color: '#e2e8f0'
-        });
-
-        container.add([box, check, text]);
-        container.setSize(220, 24);
-        container.setInteractive(new Phaser.Geom.Rectangle(0, 0, 220, 24), Phaser.Geom.Rectangle.Contains);
-
-        const refresh = () => {
-            const enabled = getter();
-            check.setVisible(enabled);
-        };
-
-        refresh();
-
-        container.on('pointerdown', () => {
-            setter(!getter());
-            refresh();
-        });
-
-        container.on('pointerover', () => {
-            box.setFillStyle(0x1f2937, 0.9);
-            this.input.setDefaultCursor('pointer');
-        });
-
-        container.on('pointerout', () => {
-            box.setFillStyle(0x0f172a, 0.75);
-            this.input.setDefaultCursor('default');
-        });
-    }
-
     private layoutTrain ()
     {
         const { width, height } = this.scale;
@@ -474,17 +449,15 @@ export class TrainGame extends Scene
         this.carSlots = [];
 
         for (let i = 0; i < this.maxCars; i += 1) {
-            const carKey = `train-car-${this.maxCars - i}`;
+            const carKey = `train-car-${i + 1}`;
             const point = trackPoints[i] ?? { x: width / 2, y: height / 2 };
             const angle = this.getTrackAngle(trackPoints, i) + this.trainRotationOffset;
             const car = this.add.image(point.x, point.y, carKey).setScale(scale).setRotation(angle);
-            if (this.debugTrack) {
-                car.setAlpha(0);
-            } else {
-                car.setAlpha(0.2);
-            }
+            car.setAlpha(1);
 
             const lock = this.createLockOverlay(point.x, point.y, car.displayWidth, car.displayHeight, i);
+            lock.setVisible(false);
+            lock.disableInteractive();
 
             this.carSlots.push({ index: i, car, lock });
         }
@@ -493,6 +466,7 @@ export class TrainGame extends Scene
             const referenceCar = this.carSlots[0].car;
             const carLength = Math.max(referenceCar.displayWidth, referenceCar.displayHeight);
             this.trainGapPx = carLength * this.trainCarGapFactor;
+            this.trainStepPx = this.trainGapPx;
         }
 
         this.refreshLocks();
@@ -545,73 +519,32 @@ export class TrainGame extends Scene
     private refreshLocks ()
     {
         this.carSlots.forEach((slot) => {
-            if (this.debugTrack) {
-                slot.car.setAlpha(0);
-                slot.lock.setVisible(false);
-                slot.lock.disableInteractive();
-                return;
-            }
-
-            const isUnlocked = slot.index < this.currentIndex;
-            const isActive = slot.index === this.currentIndex;
-
-            slot.car.setAlpha(isUnlocked ? 1 : 0.2);
-            slot.lock.setVisible(!isUnlocked);
-            slot.lock.setAlpha(isActive ? 1 : 0.4);
-            if (isActive) {
-                const hitArea = slot.lock.getData('hitArea') as Phaser.Geom.Rectangle | undefined;
-                if (hitArea) {
-                    slot.lock.setInteractive(hitArea, Phaser.Geom.Rectangle.Contains);
-                } else {
-                    slot.lock.setInteractive();
-                }
-            } else {
-                slot.lock.disableInteractive();
-            }
+            slot.car.setAlpha(1);
+            slot.lock.setVisible(false);
+            slot.lock.disableInteractive();
         });
 
-        this.scoreText.setText(`Toa: ${this.score}/${this.maxCars}`);
+        const points = Math.max(0, this.score);
+        this.scoreText.setText(`POINTS: ${points.toString().padStart(2, '0')}`);
     }
 
     private createQuizModal ()
     {
+        this.quizPanel = new QuizPanel(this, { optionCount: 4, depth: 2000, parent: this.uiRoot, showIndex: true });
+        this.quizModal = this.quizPanel.container;
+
+        this.quizPanel.onOptionSelected((index) => {
+            if (this.quizLocked) return;
+            this.handleAnswer(index);
+        });
+
+        this.layoutQuiz();
+    }
+
+    private layoutQuiz ()
+    {
         const { width, height } = this.scale;
-
-        this.quizModal = this.add.container(0, 0).setDepth(2000).setVisible(false);
-
-        const overlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.55).setOrigin(0, 0);
-
-        const panelWidth = width * 0.84;
-        const panelHeight = height * 0.58;
-        const panelX = width / 2;
-        const panelY = height / 2;
-
-        const panelBg = this.add.rectangle(panelX, panelY, panelWidth, panelHeight, 0xf8fafc, 1);
-        panelBg.setStrokeStyle(4, 0x38bdf8, 0.9);
-
-        const titleText = this.add.text(panelX, panelY - panelHeight / 2 + 26, 'Câu hỏi', {
-            fontFamily: 'Arial Black',
-            fontSize: '24px',
-            color: '#0f172a'
-        }).setOrigin(0.5, 0);
-
-        this.quizQuestionText = this.add.text(panelX, panelY - panelHeight / 2 + 70, '', {
-            fontFamily: 'Arial',
-            fontSize: '22px',
-            color: '#0f172a',
-            align: 'center',
-            wordWrap: { width: panelWidth - 80 }
-        }).setOrigin(0.5, 0);
-
-        this.quizFeedbackText = this.add.text(panelX, panelY + panelHeight / 2 - 80, '', {
-            fontFamily: 'Arial Black',
-            fontSize: '22px',
-            color: '#16a34a'
-        }).setOrigin(0.5, 0.5);
-
-        this.quizPanel = this.add.container(0, 0, [panelBg, titleText, this.quizQuestionText, this.quizFeedbackText]);
-
-        this.quizModal.add([overlay, this.quizPanel]);
+        this.quizPanel.layout(width, height);
     }
 
     private openQuestion (index: number)
@@ -619,85 +552,50 @@ export class TrainGame extends Scene
         if (this.quizOpen || this.gameOver) return;
 
         const question = this.getQuestionForIndex(index);
-        this.quizQuestionText.setText(question.question.content);
-        this.quizFeedbackText.setText('');
-
-        this.clearOptionButtons();
-        this.renderOptions(question.question.options);
+        const options = question.question.options.map((opt) => opt.text);
+        let correctIndex = question.question.options.findIndex((opt) => opt.is_correct);
+        if (correctIndex < 0) correctIndex = 0;
+        this.currentCorrectIndex = correctIndex;
+        this.quizPanel.setFeedback('idle');
+        this.quizPanel.setQuestion({
+            index: index + 1,
+            total: this.maxCars,
+            question: question.question.content,
+            options
+        });
+        this.layoutQuiz();
 
         this.quizOpen = true;
         this.quizLocked = false;
         this.quizModal.setVisible(true);
+        this.quizPanel.setInteractive(true);
     }
 
-    private renderOptions (options: { text: string; is_correct: boolean }[])
-    {
-        const { width, height } = this.scale;
-        const panelWidth = width * 0.8;
-        const startY = height / 2 - 40;
-        const gap = 18;
-        const buttonHeight = 56;
-
-        options.forEach((option, idx) => {
-            const y = startY + idx * (buttonHeight + gap);
-            const button = this.add.container(width / 2, y);
-
-            const bg = this.add.rectangle(0, 0, panelWidth, buttonHeight, 0x1e293b, 0.95);
-            bg.setStrokeStyle(2, 0x94a3b8, 0.8);
-
-            const text = this.add.text(0, 0, option.text, {
-                fontFamily: 'Arial',
-                fontSize: '20px',
-                color: '#e2e8f0',
-                align: 'center',
-                wordWrap: { width: panelWidth - 40 }
-            }).setOrigin(0.5);
-
-            button.add([bg, text]);
-            button.setSize(panelWidth, buttonHeight);
-            button.setInteractive(new Phaser.Geom.Rectangle(-panelWidth / 2, -buttonHeight / 2, panelWidth, buttonHeight), Phaser.Geom.Rectangle.Contains);
-
-            button.on('pointerover', () => {
-                if (this.quizLocked) return;
-                bg.setFillStyle(0x334155, 0.98);
-                button.setScale(1.02);
-                this.input.setDefaultCursor('pointer');
-            });
-
-            button.on('pointerout', () => {
-                bg.setFillStyle(0x1e293b, 0.95);
-                button.setScale(1);
-                this.input.setDefaultCursor('default');
-            });
-
-            button.on('pointerdown', () => {
-                if (this.quizLocked) return;
-                this.handleAnswer(option.is_correct);
-            });
-
-            this.quizModal.add(button);
-            this.quizOptionButtons.push(button);
-        });
-    }
-
-    private handleAnswer (isCorrect: boolean)
+    private handleAnswer (selectedIndex: number)
     {
         if (this.quizLocked) return;
         this.quizLocked = true;
 
+        const isCorrect = selectedIndex === this.currentCorrectIndex;
+
         if (isCorrect) {
-            this.quizFeedbackText.setColor('#16a34a');
-            this.quizFeedbackText.setText('Đúng rồi! Toa đã được nối.');
-            this.time.delayedCall(700, () => {
-                this.applyCorrect();
+            this.quizPanel.setFeedback('correct');
+            this.quizPanel.setOptionState(selectedIndex, 'correct');
+            this.quizPanel.setInteractive(false);
+            this.time.delayedCall(500, () => {
                 this.closeQuiz();
+                this.applyCorrect();
             });
         } else {
-            this.quizFeedbackText.setColor('#dc2626');
-            this.quizFeedbackText.setText('Sai rồi! Quay lại đầu tàu.');
-            this.time.delayedCall(900, () => {
+            this.quizPanel.setFeedback('wrong');
+            this.quizPanel.setOptionState(selectedIndex, 'wrong');
+            this.quizPanel.setInteractive(false);
+            this.time.delayedCall(650, () => {
                 this.applyWrong();
-                this.closeQuiz();
+                this.quizPanel.setOptionState(selectedIndex, 'normal');
+                this.quizPanel.setFeedback('idle');
+                this.quizPanel.setInteractive(true);
+                this.quizLocked = false;
             });
         }
     }
@@ -708,22 +606,51 @@ export class TrainGame extends Scene
         this.score = this.currentIndex;
         this.refreshLocks();
 
-        if (this.currentIndex >= this.maxCars) {
-            this.endGame(`Hoàn thành đủ ${this.maxCars} toa!`, 'win');
-        }
+        this.moveTrainToIndex(this.currentIndex, () => {
+            if (this.currentIndex >= this.maxCars) {
+                this.endGame(`Hoàn thành đủ ${this.maxCars} toa!`, 'win');
+                return;
+            }
+            this.openQuestion(this.currentIndex);
+        });
     }
 
     private applyWrong ()
     {
-        this.currentIndex = 0;
-        this.score = 0;
-        this.remainingMs = Math.max(0, this.remainingMs - 15000);
-        this.lastSecondShown = -1;
         this.refreshLocks();
+    }
 
-        if (this.remainingMs <= 0) {
-            this.endGame('Hết thời gian.', 'lose');
+    private moveTrainToIndex (targetIndex: number, onComplete?: () => void)
+    {
+        if (this.railTotalLength <= 0 || this.trainStepPx <= 0) {
+            if (onComplete) onComplete();
+            return;
         }
+
+        const visualIndex = Phaser.Math.Clamp(targetIndex, 0, this.maxCars);
+        const maxDistance = Math.max(0, this.railTotalLength - 1);
+        const targetDistance = Math.min(this.trainStepPx * visualIndex, maxDistance);
+        const delta = Math.abs(targetDistance - this.trainDistancePx);
+        const duration = Phaser.Math.Clamp(Math.round(320 + delta * 1.4), 450, 900);
+
+        this.trainMoving = true;
+        const tweenState = { value: this.trainDistancePx };
+        this.tweens.add({
+            targets: tweenState,
+            value: targetDistance,
+            duration,
+            ease: 'Sine.easeInOut',
+            onUpdate: () => {
+                this.trainDistancePx = tweenState.value;
+                this.updateTrainCars(true);
+            },
+            onComplete: () => {
+                this.trainDistancePx = targetDistance;
+                this.trainMoving = false;
+                this.updateTrainCars(true);
+                if (onComplete) onComplete();
+            }
+        });
     }
 
     private closeQuiz ()
@@ -731,13 +658,6 @@ export class TrainGame extends Scene
         this.quizModal.setVisible(false);
         this.quizOpen = false;
         this.quizLocked = false;
-        this.clearOptionButtons();
-    }
-
-    private clearOptionButtons ()
-    {
-        this.quizOptionButtons.forEach((button) => button.destroy());
-        this.quizOptionButtons = [];
     }
 
     private getQuestionForIndex (index: number)
@@ -1014,6 +934,10 @@ export class TrainGame extends Scene
         this.setDebugTrackVisible(this.debugTrack);
 
         this.trainDistancePx = 0;
+        if (this.trainStepPx <= 0) {
+            this.trainStepPx = this.railTotalLength > 1 ? (this.railTotalLength - 1) / this.maxCars : 0;
+        }
+        this.refreshLocks();
         this.updateTrainCars(true);
     }
 
@@ -1023,15 +947,16 @@ export class TrainGame extends Scene
         if (!force && !this.trainMoving) return;
         if (this.railTotalLength <= 0) return;
 
+        const maxDistance = Math.max(0, this.railTotalLength - 1);
+
         for (let i = 0; i < this.carSlots.length; i += 1) {
             const slot = this.carSlots[i];
-            const carDistance = this.trainDistancePx - i * this.trainGapPx;
-            const sample = this.sampleRailByDistance(carDistance);
+            const distanceFromBottom = this.trainDistancePx - i * this.trainGapPx;
+            const clamped = Phaser.Math.Clamp(distanceFromBottom, 0, maxDistance);
+            const mappedDistance = maxDistance - clamped;
+            const sample = this.sampleRailByDistance(mappedDistance);
             slot.car.setPosition(sample.position.x, sample.position.y);
             slot.car.setRotation(sample.angle + this.trainRotationOffset);
-            slot.car.setAlpha(1);
-            slot.lock.setVisible(false);
-            slot.lock.disableInteractive();
         }
     }
 
@@ -1053,7 +978,13 @@ export class TrainGame extends Scene
         if (this.railwayContainer) {
             this.railwayContainer.setVisible(value);
         }
-        this.setDebugTrackVisible(value);
+        if (this.debugCurveGraphics) {
+            this.debugCurveGraphics.setVisible(value && this.debugTrack);
+        }
+        if (this.debugMarkerGraphics) {
+            this.debugMarkerGraphics.setVisible(value && this.debugTrack);
+        }
+        this.debugMarkerLabels.forEach((label) => label.setVisible(value && this.debugTrack));
     }
 
     private isRailwayVisible ()
@@ -1071,42 +1002,6 @@ export class TrainGame extends Scene
             this.debugMarkerGraphics.setVisible(value);
         }
         this.debugMarkerLabels.forEach((label) => label.setVisible(value));
-    }
-
-    private setupHoverCoords ()
-    {
-        const text = this.add.text(12, 12, '', {
-            fontFamily: 'Arial Black',
-            fontSize: '16px',
-            color: '#f8fafc',
-            stroke: '#0f172a',
-            strokeThickness: 3
-        }).setDepth(2001).setVisible(false);
-        this.hoverCoordText = text;
-
-        this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-            if (!this.showHoverCoords || !this.hoverCoordText) return;
-            const x = Math.round(pointer.worldX);
-            const y = Math.round(pointer.worldY);
-            this.hoverCoordText.setText(`(${x}, ${y})`);
-            this.hoverCoordText.setPosition(pointer.x + 14, pointer.y + 14);
-        });
-
-        this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-            if (!this.showHoverCoords) return;
-            const x = Math.round(pointer.worldX);
-            const y = Math.round(pointer.worldY);
-            // eslint-disable-next-line no-console
-            console.log(`Hover click: (${x}, ${y})`);
-        });
-    }
-
-    private setShowHoverCoords (value: boolean)
-    {
-        this.showHoverCoords = value;
-        if (this.hoverCoordText) {
-            this.hoverCoordText.setVisible(value);
-        }
     }
 
     private setTrainMoving (value: boolean)
@@ -1134,6 +1029,6 @@ export class TrainGame extends Scene
     {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
-        return `${mins}:${secs.toString().padStart(2, '0')}`;
+        return `${mins}m ${secs.toString().padStart(2, '0')}s`;
     }
 }
