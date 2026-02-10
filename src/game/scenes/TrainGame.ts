@@ -133,14 +133,19 @@ export class TrainGame extends Scene
 {
     private debugTrack = true;
     private showCars = true;
+    private trainMoving = false;
     private trackSpline?: Phaser.Curves.Spline;
     private trainSprite?: Phaser.GameObjects.Image;
-    private trainProgress: number = 0;
-    private trainCarSpacing: number = 0.11;
+    private trainDistancePx: number = 0;
+    private trainSpeedPxPerSec: number = 180;
+    private trainGapPx: number = 0;
     private trackLength: number = 0;
-    private trainCarSpacingDistance: number = 0;
-    private readonly trainCarSpacingFactor = 0.95;
-    private readonly trainRotationOffset = Phaser.Math.DegToRad(255);
+    private readonly trainCarGapFactor = 0.68;
+    private readonly trainCarScaleFactor = 0.468;
+    private railPathPoints: Phaser.Math.Vector2[] = [];
+    private railSegmentLengths: number[] = [];
+    private railTotalLength: number = 0;
+    private readonly trainRotationOffset = Phaser.Math.DegToRad(-90);
     private railwayContainer?: Phaser.GameObjects.Container;
     private debugCurveGraphics?: Phaser.GameObjects.Graphics;
     private debugMarkerGraphics?: Phaser.GameObjects.Graphics;
@@ -212,6 +217,7 @@ export class TrainGame extends Scene
         this.createRailway();
         if (this.showCars) {
             this.layoutTrain();
+            this.updateTrainCars(true);
         }
         this.createDebugToggles();
         this.setupHoverCoords();
@@ -233,6 +239,11 @@ export class TrainGame extends Scene
 
         if (this.remainingMs <= 0 && !this.gameOver) {
             this.endGame('Hết thời gian.', 'lose');
+        }
+
+        if (this.trainMoving && this.railTotalLength > 0) {
+            this.trainDistancePx += (delta / 1000) * this.trainSpeedPxPerSec;
+            this.updateTrainCars();
         }
     }
 
@@ -360,7 +371,7 @@ export class TrainGame extends Scene
         const { width, height } = this.scale;
         const scaleX = this.background.displayWidth / this.background.width;
         const scaleY = this.background.displayHeight / this.background.height;
-        const scale = Math.min(scaleX, scaleY) * 0.72;
+        const scale = Math.min(scaleX, scaleY) * this.trainCarScaleFactor;
 
         const trackCurve = this.createTrackCurve(width, height);
         const trackPoints = this.sampleTrack(trackCurve, this.maxCars);
@@ -383,10 +394,10 @@ export class TrainGame extends Scene
             this.carSlots.push({ index: i, car, lock });
         }
 
-        if (this.trackLength > 0 && this.carSlots.length > 0) {
+        if (this.carSlots.length > 0) {
             const referenceCar = this.carSlots[0].car;
-            this.trainCarSpacingDistance = referenceCar.displayWidth * this.trainCarSpacingFactor;
-            this.trainCarSpacing = this.trainCarSpacingDistance / this.trackLength;
+            const carLength = Math.max(referenceCar.displayWidth, referenceCar.displayHeight);
+            this.trainGapPx = carLength * this.trainCarGapFactor;
         }
 
         this.refreshLocks();
@@ -768,18 +779,88 @@ export class TrainGame extends Scene
         return angle;
     }
 
+    private buildRailPath (spline: Phaser.Curves.Spline)
+    {
+        const length = spline.getLength();
+        const sampleEveryPx = 20;
+        const samples = Math.max(60, Math.round(length / sampleEveryPx));
+        const points: Phaser.Math.Vector2[] = [];
+
+        for (let i = 0; i <= samples; i += 1) {
+            const t = i / samples;
+            const p = spline.getPointAt(t);
+            points.push(new Phaser.Math.Vector2(p.x, p.y));
+        }
+
+        if (points.length < 2) {
+            this.railPathPoints = points;
+            this.railSegmentLengths = [];
+            this.railTotalLength = 0;
+            return;
+        }
+
+        const segments: number[] = [];
+        let total = 0;
+
+        for (let i = 0; i < points.length - 1; i += 1) {
+            const curr = points[i];
+            const next = points[i + 1];
+            const segLen = Phaser.Math.Distance.Between(curr.x, curr.y, next.x, next.y);
+            segments.push(segLen);
+            total += segLen;
+        }
+
+        this.railPathPoints = points;
+        this.railSegmentLengths = segments;
+        this.railTotalLength = total;
+    }
+
+    private sampleRailByDistance (distancePx: number)
+    {
+        if (this.railPathPoints.length < 2 || this.railTotalLength <= 0) {
+            return {
+                position: new Phaser.Math.Vector2(0, 0),
+                angle: 0
+            };
+        }
+
+        const total = this.railTotalLength;
+        let remaining = ((distancePx % total) + total) % total;
+        let segIndex = 0;
+
+        while (segIndex < this.railSegmentLengths.length && remaining > this.railSegmentLengths[segIndex]) {
+            remaining -= this.railSegmentLengths[segIndex];
+            segIndex += 1;
+        }
+
+        const safeIndex = Math.min(segIndex, this.railPathPoints.length - 2);
+        const curr = this.railPathPoints[safeIndex];
+        const next = this.railPathPoints[safeIndex + 1];
+        const segLen = this.railSegmentLengths[safeIndex] || 1;
+        const ratio = Phaser.Math.Clamp(remaining / segLen, 0, 1);
+
+        const x = Phaser.Math.Linear(curr.x, next.x, ratio);
+        const y = Phaser.Math.Linear(curr.y, next.y, ratio);
+        const angle = Math.atan2(next.y - curr.y, next.x - curr.x);
+
+        return {
+            position: new Phaser.Math.Vector2(x, y),
+            angle
+        };
+    }
+
     private createRailway ()
     {
         const { width, height } = this.scale;
         const spline = this.createTrackCurve(width, height);
         this.trackSpline = spline;
         this.trackLength = spline.getLength();
-        this.trainCarSpacingDistance = this.trackLength * this.trainCarSpacing;
+        this.buildRailPath(spline);
 
         const baseScale = Math.min(width / 750, height / 1334);
-        const railOffset = 22 * baseScale;
-        const sleeperWidth = railOffset * 2.2;
-        const sleeperHeight = 8 * baseScale;
+        const railOffset = 18 * baseScale;
+        const sleeperWidth = railOffset * 1.8;
+        const sleeperHeight = 7 * baseScale;
 
         const railwayContainer = this.add.container(0, 0);
         this.railwayContainer = railwayContainer;
@@ -804,7 +885,7 @@ export class TrainGame extends Scene
         }
 
         const rails = this.add.graphics();
-        rails.lineStyle(10 * baseScale, 0xf8fafc, 1);
+        rails.lineStyle(8 * baseScale, 0xf8fafc, 1);
         rails.beginPath();
         rails.moveTo(railLeft[0].x, railLeft[0].y);
         railLeft.forEach((p) => rails.lineTo(p.x, p.y));
@@ -837,32 +918,22 @@ export class TrainGame extends Scene
         this.setRailwayVisible(true);
         this.setDebugTrackVisible(this.debugTrack);
 
-        this.trainProgress = 1;
-        this.tweens.add({
-            targets: this,
-            trainProgress: 0,
-            duration: 12000,
-            repeat: -1,
-            onUpdate: () => {
-                if (!this.trackSpline) return;
-                this.updateTrainCars();
-            }
-        });
+        this.trainDistancePx = 0;
+        this.updateTrainCars(true);
     }
 
-    private updateTrainCars ()
+    private updateTrainCars (force: boolean = false)
     {
-        if (!this.trackSpline || !this.showCars) return;
+        if (!this.showCars) return;
+        if (!force && !this.trainMoving) return;
+        if (this.railTotalLength <= 0) return;
 
         for (let i = 0; i < this.carSlots.length; i += 1) {
             const slot = this.carSlots[i];
-            const rawDistance = this.trainProgress * this.trackLength - i * this.trainCarSpacingDistance;
-            const wrappedDistance = ((rawDistance % this.trackLength) + this.trackLength) % this.trackLength;
-            const t = this.trackLength === 0 ? 0 : wrappedDistance / this.trackLength;
-            const p = this.trackSpline.getPointAt(t);
-            const tangent = this.trackSpline.getTangentAt(t).normalize();
-            slot.car.setPosition(p.x, p.y);
-            slot.car.setRotation(Math.atan2(tangent.y, tangent.x) + this.trainRotationOffset);
+            const carDistance = this.trainDistancePx - i * this.trainGapPx;
+            const sample = this.sampleRailByDistance(carDistance);
+            slot.car.setPosition(sample.position.x, sample.position.y);
+            slot.car.setRotation(sample.angle + this.trainRotationOffset);
             slot.car.setAlpha(1);
             slot.lock.setVisible(false);
             slot.lock.disableInteractive();
@@ -878,7 +949,7 @@ export class TrainGame extends Scene
         });
         if (value) {
             this.refreshLocks();
-            this.updateTrainCars();
+            this.updateTrainCars(true);
         }
     }
 
