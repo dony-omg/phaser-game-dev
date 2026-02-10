@@ -136,6 +136,13 @@ export class TrainGame extends Scene
     private trainMoving = false;
     private trackSpline?: Phaser.Curves.Spline;
     private trainSprite?: Phaser.GameObjects.Image;
+    private trafficLight?: Phaser.GameObjects.Image;
+    private trafficLightVariants?: {
+        red: Phaser.GameObjects.Image;
+        yellow: Phaser.GameObjects.Image;
+        green: Phaser.GameObjects.Image;
+    };
+    private trafficLightState: 'red' | 'yellow' | 'green' | null = null;
     private trainDistancePx: number = 0;
     private trainSpeedPxPerSec: number = -180;
     private trainGapPx: number = 0;
@@ -283,6 +290,86 @@ export class TrainGame extends Scene
             fontSize: '22px',
             color: '#e2e8f0'
         }).setOrigin(1, 0.5).setDepth(60);
+
+        this.createTrafficLight();
+    }
+
+    private createTrafficLight ()
+    {
+        const lightHeight = 230;
+        const sourceHeight = 1463;
+        const sourceWidth = 335;
+        const lightWidth = Math.round(lightHeight * (sourceWidth / sourceHeight));
+        const baseX = 88;
+        const baseY = 808;
+        const anchorY = Math.round(baseY + lightHeight / 2);
+        const makeVariant = (key: string) => this.add.image(baseX, baseY, key)
+            .setOrigin(0.5, 1)
+            .setDisplaySize(lightWidth, lightHeight)
+            .setDepth(1000)
+            .setAlpha(1);
+
+        const container = this.add.container(baseX, anchorY).setDepth(1000);
+        const offsets = {
+            red: { x: 0, y: 0 },
+            yellow: { x: 0, y: 0 },
+            green: { x: -1, y: 0 }
+        };
+        const red = this.textures.exists('train-light-red')
+            ? this.add.image(0, 0, 'train-light-red')
+            : this.add.rectangle(0, 0, lightWidth, lightHeight, 0xef4444, 1);
+        const yellow = this.textures.exists('train-light-yellow')
+            ? this.add.image(0, 0, 'train-light-yellow')
+            : this.add.rectangle(0, 0, lightWidth, lightHeight, 0xfbbf24, 1);
+        const green = this.textures.exists('train-light-green')
+            ? this.add.image(0, 0, 'train-light-green')
+            : this.add.rectangle(0, 0, lightWidth, lightHeight, 0x22c55e, 1);
+
+        const normalize = (obj: Phaser.GameObjects.GameObject) => {
+            if ('setOrigin' in obj) {
+                (obj as Phaser.GameObjects.Image).setOrigin(0.5, 1);
+            }
+            if ('setDisplaySize' in obj) {
+                (obj as Phaser.GameObjects.Image).setDisplaySize(lightWidth, lightHeight);
+            }
+        };
+        normalize(red);
+        normalize(yellow);
+        normalize(green);
+        red.setPosition(offsets.red.x, offsets.red.y);
+        yellow.setPosition(offsets.yellow.x, offsets.yellow.y);
+        green.setPosition(offsets.green.x, offsets.green.y);
+        container.add([red, yellow, green]);
+
+        this.trafficLightVariants = {
+            red: red as Phaser.GameObjects.Image,
+            yellow: yellow as Phaser.GameObjects.Image,
+            green: green as Phaser.GameObjects.Image
+        };
+        this.trafficLight = this.trafficLightVariants.red;
+        const cycle: Array<'red' | 'yellow' | 'green'> = ['red', 'yellow', 'green'];
+        let cycleIndex = 0;
+        this.setTrafficLightColor(cycle[cycleIndex]);
+        this.time.addEvent({
+            delay: 700,
+            loop: true,
+            callback: () => {
+                cycleIndex = (cycleIndex + 1) % cycle.length;
+                this.setTrafficLightColor(cycle[cycleIndex]);
+            }
+        });
+    }
+
+    private setTrafficLightColor (color: 'red' | 'yellow' | 'green')
+    {
+        if (!this.trafficLightVariants) return;
+        if (this.trafficLightState === color) return;
+        this.trafficLightState = color;
+
+        const { red, yellow, green } = this.trafficLightVariants;
+        red.setVisible(color === 'red');
+        yellow.setVisible(color === 'yellow');
+        green.setVisible(color === 'green');
     }
 
     private createDebugToggles ()

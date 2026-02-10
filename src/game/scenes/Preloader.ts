@@ -128,6 +128,10 @@ export class Preloader extends Scene
             // ==================== TRAIN GAME ASSETS ====================
             this.load.image('train-bg', `${assetRoot}/background copy 2.png`);
             this.load.image('train-engine', `${assetRoot}/train.png`);
+            this.load.image('train-light', `${assetRoot}/light.png`);
+            this.load.image('train-light-red', `${assetRoot}/Fox and Traffic light/Red.png`);
+            this.load.image('train-light-yellow', `${assetRoot}/Fox and Traffic light/Yellow.png`);
+            this.load.image('train-light-green', `${assetRoot}/Fox and Traffic light/Green.png`);
 
             for (let i = 1; i <= 11; i += 1) {
                 this.load.image(`train-car-${i}`, `${assetRoot}/Train/${i}.png`);
