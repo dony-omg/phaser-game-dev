@@ -1,8 +1,10 @@
 import { EventBus } from '../EventBus';
 import { Scene } from 'phaser';
 import { getGameConfig, resolveGameCode } from '../gameConfig';
+import { endGameSession } from '../../services/api';
 
 type GameOverData = {
+    gameId?: string | null;
     score: number;
     bonus: number;
     result: 'win' | 'lose';
@@ -33,12 +35,19 @@ export class GameOver extends Scene
         const { width, height } = this.scale;
         const gameCode = resolveGameCode(this.registry.get('gameCode') as string | undefined);
         const gameConfig = getGameConfig(gameCode);
-        const { score, bonus, result, reason } = this.dataPayload || {
+        const { gameId, score, bonus, result, reason } = this.dataPayload || {
+            gameId: null,
             score: 0,
             bonus: 0,
             result: 'lose',
             reason: ''
         };
+
+        if (gameId) {
+            endGameSession(gameId, score).catch((error) => {
+                console.error('endGameSession failed', error);
+            });
+        }
 
         this.camera = this.cameras.main
         this.camera.setBackgroundColor(result === 'win' ? 0x16a34a : 0xdc2626);

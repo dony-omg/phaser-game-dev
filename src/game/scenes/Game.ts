@@ -60,9 +60,11 @@ export class Game extends Scene
     // Game State
     score: number = 0;
     currentLeafIndex: number = 0;
+    sessionId: string | null = null;
     sessionGameId: string | null = null;
     sessionQuestions: GameQuestion[] | null = null;
     sessionTimeLimit: number | null = null;
+    questionSourceLogged: boolean = false;
     gameCode: string = 'vocab_race';
     gameConfig = getGameConfig('vocab_race');
 
@@ -80,11 +82,12 @@ export class Game extends Scene
         super('Game');
     }
 
-    init (data: { gameCode?: string | null; gameId?: string | null; questions?: GameQuestion[] | null; timeLimit?: number | null })
+    init (data: { gameCode?: string | null; sessionId?: string | null; gameId?: string | null; questions?: GameQuestion[] | null; timeLimit?: number | null })
     {
         this.gameCode = resolveGameCode(data?.gameCode ?? (this.registry.get('gameCode') as string | undefined));
         this.registry.set('gameCode', this.gameCode);
         this.gameConfig = getGameConfig(this.gameCode);
+        this.sessionId = data?.sessionId ?? null;
         this.sessionGameId = data?.gameId ?? null;
         this.sessionQuestions = data?.questions ?? null;
         this.sessionTimeLimit = data?.timeLimit ?? null;
@@ -808,7 +811,23 @@ export class Game extends Scene
     private async handleQuizAnswer(index: number): Promise<void> {
         const questionPool = this.getQuestionPool();
         const question = questionPool[this.quizCurrentIndex % questionPool.length];
-        const isCorrect = index === question.correctIndex;
+        let isCorrect = index === question.correctIndex;
+
+        const selectedOptionId = question.optionIds[index];
+        if (this.sessionId && question.sessionQuestionId && selectedOptionId) {
+            try {
+                const { submitAnswer } = await import('../../services/api');
+                const res = await submitAnswer(
+                    this.sessionId,
+                    question.sessionQuestionId,
+                    selectedOptionId,
+                    { forceReal: this.gameCode === 'vocab_race' }
+                );
+                isCorrect = res.data.is_correct;
+            } catch (error) {
+                console.error('submitAnswer failed, fallback to local check', error);
+            }
+        }
 
         const btn = this.quizOptionButtons[index];
         const redraw = btn.getData('redraw') as (state: 'normal' | 'correct' | 'wrong') => void;
@@ -853,32 +872,55 @@ export class Game extends Scene
     private getQuestionPool() {
         const apiQuestions = this.sessionQuestions;
         if (apiQuestions?.length) {
+            if (!this.questionSourceLogged) {
+                this.questionSourceLogged = true;
+                console.log('[GAME][TOWN] Using session questions', {
+                    gameCode: this.gameCode,
+                    count: apiQuestions.length,
+                    sample: apiQuestions[0]?.question?.content ?? null
+                });
+            }
             return apiQuestions.map((item) => {
                 const options = item.question.options.map((opt) => opt.text);
+                const optionIds = item.question.options.map((opt) => opt.id ?? '');
                 let correctIndex = item.question.options.findIndex((opt) => opt.is_correct);
                 if (correctIndex < 0) correctIndex = 0;
                 return {
+                    sessionQuestionId: item.session_question_id ?? null,
                     question: item.question.content,
                     options,
+                    optionIds,
                     correctIndex
                 };
             });
         }
 
+        if (!this.questionSourceLogged) {
+            this.questionSourceLogged = true;
+            console.warn('[GAME][TOWN] Using fallback local questions', {
+                gameCode: this.gameCode
+            });
+        }
         return [
             {
+                sessionQuestionId: null,
                 question: 'What is the capital of Vietnam?',
                 options: ['Hanoi', 'Da Nang', 'Hai Phong', 'Can Tho'],
+                optionIds: ['', '', '', ''],
                 correctIndex: 0
             },
             {
+                sessionQuestionId: null,
                 question: 'Which language does Phaser use?',
                 options: ['TypeScript/JavaScript', 'C#', 'Python', 'Go'],
+                optionIds: ['', '', '', ''],
                 correctIndex: 0
             },
             {
+                sessionQuestionId: null,
                 question: 'What color are the leaves in the game?',
                 options: ['Green', 'Red', 'Purple', 'Yellow'],
+                optionIds: ['', '', '', ''],
                 correctIndex: 0
             }
         ];
@@ -1098,7 +1140,11 @@ export class Game extends Scene
     private submitSessionResult(): void {
         if (!this.sessionGameId) return;
         import('../../services/api')
-            .then(({ endGameSession }) => endGameSession(this.sessionGameId as string, this.score))
+            .then(({ endGameSession }) =>
+                endGameSession(this.sessionGameId as string, this.score, {
+                    forceReal: this.gameCode === 'vocab_race'
+                })
+            )
             .catch((err) => {
                 console.error('endGameSession failed', err);
             });

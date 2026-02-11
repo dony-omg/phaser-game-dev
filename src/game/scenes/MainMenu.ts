@@ -1,6 +1,7 @@
 import { GameObjects, Scene } from 'phaser';
 import { EventBus } from '../EventBus';
-import { startGameSession } from '../../services/api';
+import { fetchGameList, startGameSession } from '../../services/api';
+import { getApiMode } from '../../services/apiMode';
 import { getGameConfig, resolveGameCode } from '../gameConfig';
 
 export class MainMenu extends Scene
@@ -9,6 +10,7 @@ export class MainMenu extends Scene
     logo: GameObjects.Image;
     title: GameObjects.Text;
     description: GameObjects.Text;
+    debugText: GameObjects.Text;
     startButton: GameObjects.Container;
     isStarting: boolean = false;
     gameCode: string = 'vocab_race';
@@ -48,7 +50,32 @@ export class MainMenu extends Scene
             }
         ).setOrigin(0.5).setDepth(100);
 
+        const tokenSource = process.env.NEXT_PUBLIC_DEBUG_BEARER_TOKEN ? 'env_debug_token' : 'hardcoded_debug_token';
+        this.debugText = this.add.text(width / 2, 660, `DEBUG: ready | token=static (${tokenSource})`, {
+            fontFamily: 'Arial',
+            fontSize: 16,
+            color: '#f8fafc',
+            align: 'center',
+            wordWrap: { width: 640 }
+        }).setOrigin(0.5).setDepth(120);
+
         this.startButton = this.createButton(width / 2, 590, 'Bắt đầu');
+
+        if (gameConfig.code === 'vocab_race') {
+            this.debugText.setText('DEBUG: preflight -> calling /game/list-game ...');
+            fetchGameList({ forceReal: true })
+                .then((res) => {
+                    console.error('[GAME][PREFLIGHT] list-game success', {
+                        count: res.data?.length ?? 0
+                    });
+                    this.debugText.setText(`DEBUG: preflight success | list=${res.data?.length ?? 0}`);
+                })
+                .catch((error) => {
+                    const msg = error instanceof Error ? error.message : String(error);
+                    console.error('[GAME][PREFLIGHT] list-game failed', { error: msg });
+                    this.debugText.setText(`DEBUG: preflight failed | ${msg}`);
+                });
+        }
 
         EventBus.emit('current-scene-ready', this);
     }
@@ -95,24 +122,52 @@ export class MainMenu extends Scene
         if (this.isStarting) return;
         this.isStarting = true;
         this.startButton.setAlpha(0.6);
+        console.log('[GAME][SESSION] Start button clicked', { gameCode: this.gameCode });
+        this.debugText.setText('DEBUG: start clicked -> calling startGameSession...');
 
         const gameConfig = getGameConfig(this.gameCode);
-        startGameSession(gameConfig.code)
+        const forceReal = gameConfig.code === 'vocab_race';
+        startGameSession(gameConfig.code, { forceReal })
             .then((res) => {
                 const data = res.data;
+                console.log('[GAME][SESSION] startGameSession success', {
+                    gameCode: this.gameCode,
+                    apiMode: getApiMode(),
+                    forceReal,
+                    sessionId: data.id,
+                    gameId: data.game_id,
+                    questionCount: data.questions?.length ?? 0,
+                    timeLimit: data.game?.time_limit ?? null
+                });
+                this.debugText.setText(`DEBUG: API success | questions=${data.questions?.length ?? 0}`);
                 const nextScene = gameConfig.code === 'train_game' ? 'TrainGame' : 'Game';
                 this.scene.start(nextScene, {
                     gameCode: this.gameCode,
+                    sessionId: data.id,
                     gameId: data.game_id,
-                    questions: data.game_session_questions,
+                    questions: data.questions,
                     timeLimit: data.game.time_limit
                 });
             })
             .catch((err) => {
-                console.error('startGameSession failed, fallback to local questions', err);
+                console.error('[GAME][SESSION] startGameSession failed, fallback to local questions', {
+                    gameCode: this.gameCode,
+                    apiMode: getApiMode(),
+                    forceReal,
+                    error: err
+                });
+                const errorMessage = err instanceof Error ? err.message : String(err);
+                this.debugText.setText(`DEBUG: API failed -> ${errorMessage}`);
+
+                if (forceReal) {
+                    this.description.setText('Không lấy được câu hỏi từ REAL API.\nKiểm tra token/API rồi thử lại.');
+                    return;
+                }
+
                 const nextScene = gameConfig.code === 'train_game' ? 'TrainGame' : 'Game';
                 this.scene.start(nextScene, {
                     gameCode: this.gameCode,
+                    sessionId: null,
                     gameId: null,
                     questions: null,
                     timeLimit: null

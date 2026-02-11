@@ -2,10 +2,25 @@ import Head from "next/head";
 import { Inter } from "next/font/google";
 import styles from "@/styles/Home.module.css";
 import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { ApiMode, getApiMode, getDefaultApiMode, setApiMode } from "@/services/apiMode";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export default function Home() {
+    const [apiMode, setApiModeState] = useState<ApiMode>(getDefaultApiMode());
+
+    useEffect(() => {
+        setApiModeState(getApiMode());
+    }, []);
+
+    const apiUrl = useMemo(() => process.env.NEXT_PUBLIC_API_URL || "(chưa set)", []);
+
+    const applyMode = (mode: ApiMode) => {
+        setApiMode(mode);
+        setApiModeState(mode);
+    };
+
     return (
         <>
             <Head>
@@ -15,13 +30,30 @@ export default function Home() {
                 <link rel="icon" href="/favicon.png" />
             </Head>
             <main className={`${styles.main} ${inter.className}`}>
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                    <div
-                        style={{
-                            position: "relative",
-                            width: "min(720px, 92vw)"
-                        }}
-                    >
+                <div className={styles.hubWrap}>
+                    <section className={styles.debugPanel}>
+                        <div className={styles.debugTitle}>Debug Hub Mode</div>
+                        <div className={styles.debugRow}>
+                            <button
+                                type="button"
+                                onClick={() => applyMode("real")}
+                                className={`${styles.modeBtn} ${apiMode === "real" ? styles.activeReal : ""}`}
+                            >
+                                REAL API
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => applyMode("mock")}
+                                className={`${styles.modeBtn} ${apiMode === "mock" ? styles.activeMock : ""}`}
+                            >
+                                MOCK API
+                            </button>
+                        </div>
+                        <div className={styles.debugMeta}>Current: <b>{apiMode.toUpperCase()}</b></div>
+                        <div className={styles.debugMeta}>Base URL: {apiUrl}</div>
+                    </section>
+
+                    <div className={styles.mapWrap}>
                         <img
                             src="/assets/ui/game-list.png"
                             alt="Mini Games"
@@ -31,7 +63,6 @@ export default function Home() {
                                 display: "block"
                             }}
                         />
-                        {/* Train Game hotspot (first card) */}
                         <Link
                             href="/game/train"
                             aria-label="Train Game"
@@ -45,7 +76,6 @@ export default function Home() {
                                 display: "block"
                             }}
                         />
-                        {/* Tower hotspot (last card) */}
                         <Link
                             href="/game/tower"
                             aria-label="Tower"

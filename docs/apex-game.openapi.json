@@ -1,0 +1,1951 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Default module",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "tags": [
+    {
+      "name": "Public"
+    },
+    {
+      "name": "Authentication"
+    },
+    {
+      "name": "Game"
+    }
+  ],
+  "paths": {
+    "/api/v1/game/list-game": {
+      "get": {
+        "summary": "List game",
+        "deprecated": false,
+        "description": "",
+        "tags": [
+          "Public",
+          "Authentication",
+          "Game"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "question_type": {
+                            "type": "string"
+                          },
+                          "time_limit": {
+                            "type": "integer"
+                          },
+                          "total_questions": {
+                            "type": "integer"
+                          },
+                          "question_time_limit": {
+                            "type": "integer"
+                          },
+                          "game_rule_id": {
+                            "type": "string"
+                          },
+                          "win_condition": {
+                            "type": "string"
+                          },
+                          "win_condition_value": {
+                            "type": "integer"
+                          },
+                          "lose_condition": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "lose_condition_value": {
+                            "type": "integer",
+                            "nullable": true
+                          },
+                          "game_rule": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "modifier": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "game_modifier": {
+                                      "type": "object",
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "target": {
+                                          "type": "string"
+                                        },
+                                        "type": {
+                                          "type": "string"
+                                        },
+                                        "for": {
+                                          "type": "string"
+                                        },
+                                        "amount": {
+                                          "type": "integer"
+                                        },
+                                        "isBonus": {
+                                          "type": "boolean"
+                                        },
+                                        "bonusType": {
+                                          "type": "string",
+                                          "nullable": true
+                                        },
+                                        "bonusValue": {
+                                          "type": "integer"
+                                        }
+                                      },
+                                      "required": [
+                                        "id",
+                                        "target",
+                                        "type",
+                                        "for",
+                                        "amount",
+                                        "isBonus",
+                                        "bonusType",
+                                        "bonusValue"
+                                      ]
+                                    }
+                                  },
+                                  "required": [
+                                    "game_modifier"
+                                  ]
+                                }
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "modifier"
+                            ]
+                          },
+                          "is_accessible": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "code",
+                          "name",
+                          "question_type",
+                          "time_limit",
+                          "total_questions",
+                          "question_time_limit",
+                          "game_rule_id",
+                          "win_condition",
+                          "win_condition_value",
+                          "lose_condition",
+                          "lose_condition_value",
+                          "game_rule",
+                          "is_accessible"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                    "data"
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": [
+                    {
+                      "id": "b3795afe-5505-472b-835a-5f664168a19d",
+                      "code": "trains_cars",
+                      "name": "Train Cars",
+                      "question_type": "REPEAT",
+                      "time_limit": 300,
+                      "total_questions": 10,
+                      "question_time_limit": 0,
+                      "game_rule_id": "081f7bb5-b0e7-40fb-a85d-af33e2c34c90",
+                      "win_condition": "SCORE",
+                      "win_condition_value": 10,
+                      "lose_condition": null,
+                      "lose_condition_value": null,
+                      "game_rule": {
+                        "id": "081f7bb5-b0e7-40fb-a85d-af33e2c34c90",
+                        "modifier": [
+                          {
+                            "game_modifier": {
+                              "id": "73d6bb20-d61f-4d9c-998e-6f719881cd68",
+                              "target": "SCORE",
+                              "type": "PLUS",
+                              "for": "CORRECT",
+                              "amount": 1,
+                              "isBonus": false,
+                              "bonusType": null,
+                              "bonusValue": 0
+                            }
+                          },
+                          {
+                            "game_modifier": {
+                              "id": "97d7f3af-bcf0-4c2a-a5f5-3a9d14e0db83",
+                              "target": "PENALTY_SEC",
+                              "type": "PLUS",
+                              "for": "INCORRECT",
+                              "amount": 15,
+                              "isBonus": false,
+                              "bonusType": null,
+                              "bonusValue": 0
+                            }
+                          }
+                        ]
+                      },
+                      "is_accessible": true
+                    },
+                    {
+                      "id": "a0bacc22-cf15-4420-af47-50e1a6c39621",
+                      "code": "goody_bag",
+                      "name": "Grammar Goody Bag",
+                      "question_type": "REPEAT",
+                      "time_limit": 150,
+                      "total_questions": 10,
+                      "question_time_limit": 15,
+                      "game_rule_id": "007a858e-90c2-4ebb-bf08-0550eaa75f02",
+                      "win_condition": "CORRECT_WRONG",
+                      "win_condition_value": 8,
+                      "lose_condition": "CORRECT_WRONG",
+                      "lose_condition_value": 4,
+                      "game_rule": {
+                        "id": "007a858e-90c2-4ebb-bf08-0550eaa75f02",
+                        "modifier": [
+                          {
+                            "game_modifier": {
+                              "id": "73d6bb20-d61f-4d9c-998e-6f719881cd68",
+                              "target": "SCORE",
+                              "type": "PLUS",
+                              "for": "CORRECT",
+                              "amount": 1,
+                              "isBonus": false,
+                              "bonusType": null,
+                              "bonusValue": 0
+                            }
+                          },
+                          {
+                            "game_modifier": {
+                              "id": "5969a90b-a2b9-4aaf-a622-4c99f835c29a",
+                              "target": "SCORE",
+                              "type": "MINUS",
+                              "for": "INCORRECT",
+                              "amount": 1,
+                              "isBonus": false,
+                              "bonusType": null,
+                              "bonusValue": 0
+                            }
+                          },
+                          {
+                            "game_modifier": {
+                              "id": "a4f79507-7878-40bb-87f0-e9db014d6db4",
+                              "target": "STREAK",
+                              "type": "PLUS",
+                              "for": "CORRECT",
+                              "amount": 1,
+                              "isBonus": false,
+                              "bonusType": null,
+                              "bonusValue": 0
+                            }
+                          },
+                          {
+                            "game_modifier": {
+                              "id": "b7d2a866-18ba-47d0-8e86-f9e83fbce172",
+                              "target": "STREAK",
+                              "type": "RESET",
+                              "for": "INCORRECT",
+                              "amount": 0,
+                              "isBonus": false,
+                              "bonusType": null,
+                              "bonusValue": 0
+                            }
+                          },
+                          {
+                            "game_modifier": {
+                              "id": "d862630b-b5eb-4226-86d9-1fe682488eea",
+                              "target": "SCORE",
+                              "type": "PLUS",
+                              "for": "CORRECT",
+                              "amount": 1,
+                              "isBonus": true,
+                              "bonusType": "STREAK_MULTI",
+                              "bonusValue": 3
+                            }
+                          }
+                        ]
+                      },
+                      "is_accessible": true
+                    },
+                    {
+                      "id": "6080145c-9524-4e60-8c12-f1966e6b61af",
+                      "code": "vocab_race",
+                      "name": "Vocabulary Race",
+                      "question_type": "REPEAT",
+                      "time_limit": 180,
+                      "total_questions": 15,
+                      "question_time_limit": 10,
+                      "game_rule_id": "1eec8b21-8bbe-40dd-bb01-6d55ffa3c03d",
+                      "win_condition": "POSITION",
+                      "win_condition_value": 30,
+                      "lose_condition": null,
+                      "lose_condition_value": 0,
+                      "game_rule": {
+                        "id": "1eec8b21-8bbe-40dd-bb01-6d55ffa3c03d",
+                        "modifier": [
+                          {
+                            "game_modifier": {
+                              "id": "73d6bb20-d61f-4d9c-998e-6f719881cd68",
+                              "target": "SCORE",
+                              "type": "PLUS",
+                              "for": "CORRECT",
+                              "amount": 1,
+                              "isBonus": false,
+                              "bonusType": null,
+                              "bonusValue": 0
+                            }
+                          },
+                          {
+                            "game_modifier": {
+                              "id": "5969a90b-a2b9-4aaf-a622-4c99f835c29a",
+                              "target": "SCORE",
+                              "type": "MINUS",
+                              "for": "INCORRECT",
+                              "amount": 1,
+                              "isBonus": false,
+                              "bonusType": null,
+                              "bonusValue": 0
+                            }
+                          },
+                          {
+                            "game_modifier": {
+                              "id": "7429e05e-c8f9-4693-84bd-b35c3380b29a",
+                              "target": "POSITION",
+                              "type": "PLUS",
+                              "for": "CORRECT",
+                              "amount": 1,
+                              "isBonus": false,
+                              "bonusType": null,
+                              "bonusValue": 0
+                            }
+                          },
+                          {
+                            "game_modifier": {
+                              "id": "12a60504-4877-481f-a42e-eb7ccec9f67c",
+                              "target": "POSITION",
+                              "type": "MINUS",
+                              "for": "INCORRECT",
+                              "amount": 1,
+                              "isBonus": false,
+                              "bonusType": null,
+                              "bonusValue": 0
+                            }
+                          },
+                          {
+                            "game_modifier": {
+                              "id": "71c20df9-b43b-40f1-8372-7ae7024fc01c",
+                              "target": "SCORE",
+                              "type": "PLUS",
+                              "for": "CORRECT",
+                              "amount": 3,
+                              "isBonus": true,
+                              "bonusType": "FINISH_GAME_EARLY",
+                              "bonusValue": 0
+                            }
+                          },
+                          {
+                            "game_modifier": {
+                              "id": "0d678c90-4e0e-4294-a406-398d15707070",
+                              "target": "POSITION",
+                              "type": "PLUS",
+                              "for": "CORRECT",
+                              "amount": 1,
+                              "isBonus": true,
+                              "bonusType": "STREAK_MULTI",
+                              "bonusValue": 1
+                            }
+                          },
+                          {
+                            "game_modifier": {
+                              "id": "a4f79507-7878-40bb-87f0-e9db014d6db4",
+                              "target": "STREAK",
+                              "type": "PLUS",
+                              "for": "CORRECT",
+                              "amount": 1,
+                              "isBonus": false,
+                              "bonusType": null,
+                              "bonusValue": 0
+                            }
+                          },
+                          {
+                            "game_modifier": {
+                              "id": "b7d2a866-18ba-47d0-8e86-f9e83fbce172",
+                              "target": "STREAK",
+                              "type": "RESET",
+                              "for": "INCORRECT",
+                              "amount": 0,
+                              "isBonus": false,
+                              "bonusType": null,
+                              "bonusValue": 0
+                            }
+                          }
+                        ]
+                      },
+                      "is_accessible": true
+                    },
+                    {
+                      "id": "91729c7f-ea42-40d0-9c22-b9c57647f108",
+                      "code": "grammar_tower",
+                      "name": "Grammar Tower",
+                      "question_type": "NONREPEAT",
+                      "time_limit": 180,
+                      "total_questions": 30,
+                      "question_time_limit": 15,
+                      "game_rule_id": "aa432ae4-32ee-4e3a-a023-24b7f18b8c5b",
+                      "win_condition": "POSITION",
+                      "win_condition_value": 10,
+                      "lose_condition": "CORRECT_WRONG",
+                      "lose_condition_value": 8,
+                      "game_rule": {
+                        "id": "aa432ae4-32ee-4e3a-a023-24b7f18b8c5b",
+                        "modifier": [
+                          {
+                            "game_modifier": {
+                              "id": "73d6bb20-d61f-4d9c-998e-6f719881cd68",
+                              "target": "SCORE",
+                              "type": "PLUS",
+                              "for": "CORRECT",
+                              "amount": 1,
+                              "isBonus": false,
+                              "bonusType": null,
+                              "bonusValue": 0
+                            }
+                          },
+                          {
+                            "game_modifier": {
+                              "id": "5969a90b-a2b9-4aaf-a622-4c99f835c29a",
+                              "target": "SCORE",
+                              "type": "MINUS",
+                              "for": "INCORRECT",
+                              "amount": 1,
+                              "isBonus": false,
+                              "bonusType": null,
+                              "bonusValue": 0
+                            }
+                          },
+                          {
+                            "game_modifier": {
+                              "id": "7429e05e-c8f9-4693-84bd-b35c3380b29a",
+                              "target": "POSITION",
+                              "type": "PLUS",
+                              "for": "CORRECT",
+                              "amount": 1,
+                              "isBonus": false,
+                              "bonusType": null,
+                              "bonusValue": 0
+                            }
+                          },
+                          {
+                            "game_modifier": {
+                              "id": "12a60504-4877-481f-a42e-eb7ccec9f67c",
+                              "target": "POSITION",
+                              "type": "MINUS",
+                              "for": "INCORRECT",
+                              "amount": 1,
+                              "isBonus": false,
+                              "bonusType": null,
+                              "bonusValue": 0
+                            }
+                          },
+                          {
+                            "game_modifier": {
+                              "id": "0905d17c-b4a0-4cb9-9601-a67212bf7557",
+                              "target": "SCORE",
+                              "type": "PLUS",
+                              "for": "CORRECT",
+                              "amount": 5,
+                              "isBonus": true,
+                              "bonusType": "REACH_POSITION",
+                              "bonusValue": 10
+                            }
+                          }
+                        ]
+                      },
+                      "is_accessible": true
+                    }
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                    "error"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/game/start-game": {
+      "post": {
+        "summary": "Start game session",
+        "deprecated": false,
+        "description": "",
+        "tags": [
+          "Authentication",
+          "Public"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              },
+              "example": {
+                "game_code": "trains_cars"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "streak": {
+                          "type": "integer"
+                        },
+                        "correct_count": {
+                          "type": "integer"
+                        },
+                        "wrong_count": {
+                          "type": "integer"
+                        },
+                        "start_time": {
+                          "type": "string"
+                        },
+                        "current_question": {
+                          "type": "integer"
+                        },
+                        "position": {
+                          "type": "integer"
+                        },
+                        "status": {
+                          "type": "string"
+                        },
+                        "penalty_second": {
+                          "type": "integer"
+                        },
+                        "score": {
+                          "type": "integer"
+                        },
+                        "time_passing": {
+                          "type": "integer"
+                        },
+                        "game_id": {
+                          "type": "string"
+                        },
+                        "perks": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "game": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "code": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "question_type": {
+                              "type": "string"
+                            },
+                            "time_limit": {
+                              "type": "integer"
+                            },
+                            "total_questions": {
+                              "type": "integer"
+                            },
+                            "question_time_limit": {
+                              "type": "integer"
+                            },
+                            "game_rule_id": {
+                              "type": "string"
+                            },
+                            "win_condition": {
+                              "type": "string"
+                            },
+                            "win_condition_value": {
+                              "type": "integer"
+                            },
+                            "lose_condition": {
+                              "type": "null"
+                            },
+                            "lose_condition_value": {
+                              "type": "null"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "code",
+                            "name",
+                            "question_type",
+                            "time_limit",
+                            "total_questions",
+                            "question_time_limit",
+                            "game_rule_id",
+                            "win_condition",
+                            "win_condition_value",
+                            "lose_condition",
+                            "lose_condition_value"
+                          ]
+                        },
+                        "game_session_questions": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "order": {
+                                "type": "integer"
+                              },
+                              "is_answered": {
+                                "type": "boolean"
+                              },
+                              "start_time": {
+                                "type": "null"
+                              },
+                              "session_id": {
+                                "type": "string"
+                              },
+                              "question_id": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "order",
+                              "is_answered",
+                              "start_time",
+                              "session_id",
+                              "question_id"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "streak",
+                        "correct_count",
+                        "wrong_count",
+                        "start_time",
+                        "current_question",
+                        "position",
+                        "status",
+                        "penalty_second",
+                        "score",
+                        "time_passing",
+                        "game_id",
+                        "perks",
+                        "game",
+                        "game_session_questions"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                    "data"
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": {
+                    "id": "51a1ab2c-6d9d-4f8c-95ea-1a5e89af0e17",
+                    "streak": 0,
+                    "correct_count": 0,
+                    "wrong_count": 0,
+                    "start_time": "2025-10-15T02:01:18.188Z",
+                    "current_question": 0,
+                    "position": 0,
+                    "status": "OPEN",
+                    "penalty_second": 0,
+                    "score": 0,
+                    "time_passing": 0,
+                    "game_id": "bc1622f2-bf52-44e6-9275-9abaac0e0011",
+                    "perks": [],
+                    "game": {
+                      "id": "bc1622f2-bf52-44e6-9275-9abaac0e0011",
+                      "code": "trains_cars",
+                      "name": "Train Cars",
+                      "question_type": "REPEAT",
+                      "time_limit": 300,
+                      "total_questions": 10,
+                      "question_time_limit": 0,
+                      "game_rule_id": "4df41e94-6da3-41e4-af5b-e331e228c1ed",
+                      "win_condition": "SCORE",
+                      "win_condition_value": 10,
+                      "lose_condition": null,
+                      "lose_condition_value": null
+                    },
+                    "game_session_questions": [
+                      {
+                        "id": "c7dd5589-796e-47d8-a671-a721901c6b9b",
+                        "order": 1,
+                        "is_answered": false,
+                        "start_time": null,
+                        "session_id": "51a1ab2c-6d9d-4f8c-95ea-1a5e89af0e17",
+                        "question_id": "cd1add77-ec03-44a2-80c6-075d91a482a7"
+                      },
+                      {
+                        "id": "06eb3732-e23f-42d3-86c1-9eea478868ce",
+                        "order": 2,
+                        "is_answered": false,
+                        "start_time": null,
+                        "session_id": "51a1ab2c-6d9d-4f8c-95ea-1a5e89af0e17",
+                        "question_id": "50a061ed-c3be-442f-b660-3a17949aecfb"
+                      },
+                      {
+                        "id": "2881f79b-eb3c-4d32-a16e-5fd92d47a25a",
+                        "order": 3,
+                        "is_answered": false,
+                        "start_time": null,
+                        "session_id": "51a1ab2c-6d9d-4f8c-95ea-1a5e89af0e17",
+                        "question_id": "6a8b701b-30fd-4f21-9a3e-a6bc0fbebe12"
+                      },
+                      {
+                        "id": "b935aaa5-ffdd-4d7b-945a-92119dea2c1d",
+                        "order": 4,
+                        "is_answered": false,
+                        "start_time": null,
+                        "session_id": "51a1ab2c-6d9d-4f8c-95ea-1a5e89af0e17",
+                        "question_id": "e646c7a7-4189-44c1-a6b4-fb637f0e2c8e"
+                      },
+                      {
+                        "id": "23ea8bc5-e079-4823-831e-1ef66ac9f20f",
+                        "order": 5,
+                        "is_answered": false,
+                        "start_time": null,
+                        "session_id": "51a1ab2c-6d9d-4f8c-95ea-1a5e89af0e17",
+                        "question_id": "0a751f1d-a0ca-4b9b-9f90-934f4036a639"
+                      },
+                      {
+                        "id": "772a561f-2424-4114-81a6-ed9f7e15341e",
+                        "order": 6,
+                        "is_answered": false,
+                        "start_time": null,
+                        "session_id": "51a1ab2c-6d9d-4f8c-95ea-1a5e89af0e17",
+                        "question_id": "30001bc6-2964-4248-8bbd-00458582d32b"
+                      },
+                      {
+                        "id": "e496b64d-32d3-40a9-9600-e8068dbfd515",
+                        "order": 7,
+                        "is_answered": false,
+                        "start_time": null,
+                        "session_id": "51a1ab2c-6d9d-4f8c-95ea-1a5e89af0e17",
+                        "question_id": "316b3d00-df4a-486f-a608-c7db2c6a5c37"
+                      },
+                      {
+                        "id": "4b209730-fb91-4d9b-8bb1-cf8b29a9cdc5",
+                        "order": 8,
+                        "is_answered": false,
+                        "start_time": null,
+                        "session_id": "51a1ab2c-6d9d-4f8c-95ea-1a5e89af0e17",
+                        "question_id": "c2e2cdcf-13c8-4b93-a2d5-76ec0089bc4e"
+                      },
+                      {
+                        "id": "9f959533-1f60-4e9c-b956-2e245b5582aa",
+                        "order": 9,
+                        "is_answered": false,
+                        "start_time": null,
+                        "session_id": "51a1ab2c-6d9d-4f8c-95ea-1a5e89af0e17",
+                        "question_id": "019e974d-a987-4e68-b48f-8a9a7edb95cc"
+                      },
+                      {
+                        "id": "28edd3eb-d3ae-4f81-8d90-3899695c9e5d",
+                        "order": 10,
+                        "is_answered": false,
+                        "start_time": null,
+                        "session_id": "51a1ab2c-6d9d-4f8c-95ea-1a5e89af0e17",
+                        "question_id": "488704e0-4644-4dc1-b29e-8ee67a2bde91"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "headers": {}
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "response": {
+                          "type": "object",
+                          "properties": {
+                            "message": {
+                              "type": "string"
+                            },
+                            "requiresPremium": {
+                              "type": "boolean"
+                            },
+                            "lockedGame": {
+                              "type": "object",
+                              "properties": {
+                                "gameCode": {
+                                  "type": "string"
+                                },
+                                "gameName": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "gameCode",
+                                "gameName"
+                              ]
+                            },
+                            "upgradeUrl": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "message",
+                            "requiresPremium",
+                            "lockedGame",
+                            "upgradeUrl"
+                          ]
+                        },
+                        "status": {
+                          "type": "integer"
+                        },
+                        "options": {
+                          "type": "object",
+                          "properties": {}
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "response",
+                        "status",
+                        "options",
+                        "message",
+                        "name"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                    "error"
+                  ]
+                },
+                "example": {
+                  "success": false,
+                  "message": "This mini-game is locked. Upgrade to Premium to unlock all mini-games.",
+                  "error": {
+                    "response": {
+                      "message": "This mini-game is locked. Upgrade to Premium to unlock all mini-games.",
+                      "requiresPremium": true,
+                      "lockedGame": {
+                        "gameCode": "grammar_tower",
+                        "gameName": "Grammar Tower"
+                      },
+                      "upgradeUrl": "/subscriptions/plans"
+                    },
+                    "status": 403,
+                    "options": {},
+                    "message": "This mini-game is locked. Upgrade to Premium to unlock all mini-games.",
+                    "name": "ForbiddenException"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "clientVersion": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "code",
+                        "clientVersion"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                    "error"
+                  ]
+                },
+                "example": {
+                  "success": false,
+                  "message": "No Game found",
+                  "error": {
+                    "name": "NotFoundError",
+                    "code": "P2025",
+                    "clientVersion": "5.22.0"
+                  }
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/game/answer-batching": {
+      "post": {
+        "summary": "Answer Batching",
+        "deprecated": false,
+        "description": "",
+        "tags": [
+          "Public",
+          "Authentication"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              },
+              "example": {
+                "game_id": "05ac071d-69d6-4f3f-bdc8-8ed48401bc7c",
+                "score": -100
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/game/current-session/{game_id}": {
+      "get": {
+        "summary": "Current session",
+        "deprecated": false,
+        "description": "",
+        "tags": [
+          "Authentication",
+          "Public"
+        ],
+        "parameters": [
+          {
+            "name": "game_id",
+            "in": "path",
+            "description": "data.game_id or data.game.id",
+            "required": true,
+            "example": "bc1622f2-bf52-44e6-9275-9abaac0e0011",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "streak": {
+                          "type": "integer"
+                        },
+                        "correct_count": {
+                          "type": "integer"
+                        },
+                        "wrong_count": {
+                          "type": "integer"
+                        },
+                        "start_time": {
+                          "type": "string"
+                        },
+                        "current_question": {
+                          "type": "integer"
+                        },
+                        "position": {
+                          "type": "integer"
+                        },
+                        "status": {
+                          "type": "string"
+                        },
+                        "penalty_second": {
+                          "type": "integer"
+                        },
+                        "score": {
+                          "type": "integer"
+                        },
+                        "time_passing": {
+                          "type": "integer"
+                        },
+                        "game_id": {
+                          "type": "string"
+                        },
+                        "perks": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "game": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "code": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "question_type": {
+                              "type": "string"
+                            },
+                            "time_limit": {
+                              "type": "integer"
+                            },
+                            "total_questions": {
+                              "type": "integer"
+                            },
+                            "question_time_limit": {
+                              "type": "integer"
+                            },
+                            "game_rule_id": {
+                              "type": "string"
+                            },
+                            "win_condition": {
+                              "type": "string"
+                            },
+                            "win_condition_value": {
+                              "type": "integer"
+                            },
+                            "lose_condition": {
+                              "type": "null"
+                            },
+                            "lose_condition_value": {
+                              "type": "null"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "code",
+                            "name",
+                            "question_type",
+                            "time_limit",
+                            "total_questions",
+                            "question_time_limit",
+                            "game_rule_id",
+                            "win_condition",
+                            "win_condition_value",
+                            "lose_condition",
+                            "lose_condition_value"
+                          ]
+                        },
+                        "game_session_questions": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "order": {
+                                "type": "integer"
+                              },
+                              "is_answered": {
+                                "type": "boolean"
+                              },
+                              "start_time": {
+                                "type": "null"
+                              },
+                              "session_id": {
+                                "type": "string"
+                              },
+                              "question_id": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "order",
+                              "is_answered",
+                              "start_time",
+                              "session_id",
+                              "question_id"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "streak",
+                        "correct_count",
+                        "wrong_count",
+                        "start_time",
+                        "current_question",
+                        "position",
+                        "status",
+                        "penalty_second",
+                        "score",
+                        "time_passing",
+                        "game_id",
+                        "perks",
+                        "game",
+                        "game_session_questions"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                    "data"
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": {
+                    "id": "fec92d0e-a837-45cc-893f-81c47adbb825",
+                    "streak": 0,
+                    "correct_count": 0,
+                    "wrong_count": 0,
+                    "start_time": "2025-10-15T02:10:32.167Z",
+                    "current_question": 0,
+                    "position": 0,
+                    "status": "OPEN",
+                    "penalty_second": 0,
+                    "score": 0,
+                    "time_passing": 0,
+                    "game_id": "bc1622f2-bf52-44e6-9275-9abaac0e0011",
+                    "perks": [],
+                    "game": {
+                      "id": "bc1622f2-bf52-44e6-9275-9abaac0e0011",
+                      "code": "trains_cars",
+                      "name": "Train Cars",
+                      "question_type": "REPEAT",
+                      "time_limit": 300,
+                      "total_questions": 10,
+                      "question_time_limit": 0,
+                      "game_rule_id": "4df41e94-6da3-41e4-af5b-e331e228c1ed",
+                      "win_condition": "SCORE",
+                      "win_condition_value": 10,
+                      "lose_condition": null,
+                      "lose_condition_value": null
+                    },
+                    "game_session_questions": [
+                      {
+                        "id": "b405b767-0696-432b-9ee2-ac3698cb06c1",
+                        "order": 1,
+                        "is_answered": false,
+                        "start_time": null,
+                        "session_id": "fec92d0e-a837-45cc-893f-81c47adbb825",
+                        "question_id": "dd172245-b337-47e3-b692-052b697ea263"
+                      },
+                      {
+                        "id": "1c796983-6afe-4434-922d-bf748dc31780",
+                        "order": 2,
+                        "is_answered": false,
+                        "start_time": null,
+                        "session_id": "fec92d0e-a837-45cc-893f-81c47adbb825",
+                        "question_id": "316b3d00-df4a-486f-a608-c7db2c6a5c37"
+                      },
+                      {
+                        "id": "e4c969d1-5da5-481d-98cc-5d7f0035a303",
+                        "order": 3,
+                        "is_answered": false,
+                        "start_time": null,
+                        "session_id": "fec92d0e-a837-45cc-893f-81c47adbb825",
+                        "question_id": "19b2a21d-7cba-452a-9c9c-5c5d521c7adf"
+                      },
+                      {
+                        "id": "cd919c30-eab5-4970-9f91-7e22763d7cb9",
+                        "order": 4,
+                        "is_answered": false,
+                        "start_time": null,
+                        "session_id": "fec92d0e-a837-45cc-893f-81c47adbb825",
+                        "question_id": "35183527-5386-4d38-a9b6-14b83a9c0a64"
+                      },
+                      {
+                        "id": "0272cfaa-65bf-4d62-8fe7-d119e69f5b9c",
+                        "order": 5,
+                        "is_answered": false,
+                        "start_time": null,
+                        "session_id": "fec92d0e-a837-45cc-893f-81c47adbb825",
+                        "question_id": "ce4d03ca-2fcc-4806-91d2-45fd21d86639"
+                      },
+                      {
+                        "id": "92611f3a-3782-46a3-bfa4-0103f4d752ac",
+                        "order": 6,
+                        "is_answered": false,
+                        "start_time": null,
+                        "session_id": "fec92d0e-a837-45cc-893f-81c47adbb825",
+                        "question_id": "488704e0-4644-4dc1-b29e-8ee67a2bde91"
+                      },
+                      {
+                        "id": "d5f566fc-532d-40cf-ba97-ad34c479f5a7",
+                        "order": 7,
+                        "is_answered": false,
+                        "start_time": null,
+                        "session_id": "fec92d0e-a837-45cc-893f-81c47adbb825",
+                        "question_id": "6ceb9088-8197-4707-8239-9b6abf1db0bb"
+                      },
+                      {
+                        "id": "370d3172-8a36-44f1-86a5-9fb65eb8a1bd",
+                        "order": 8,
+                        "is_answered": false,
+                        "start_time": null,
+                        "session_id": "fec92d0e-a837-45cc-893f-81c47adbb825",
+                        "question_id": "197222f1-13c1-4096-ad85-2d4950f71a79"
+                      },
+                      {
+                        "id": "48368d3b-b999-41e0-883e-33965c33bf99",
+                        "order": 9,
+                        "is_answered": false,
+                        "start_time": null,
+                        "session_id": "fec92d0e-a837-45cc-893f-81c47adbb825",
+                        "question_id": "4596484d-9869-4a50-96d8-5587403ffc97"
+                      },
+                      {
+                        "id": "1ea8543e-4f1a-4567-bdf6-92f1daed5d81",
+                        "order": 10,
+                        "is_answered": false,
+                        "start_time": null,
+                        "session_id": "fec92d0e-a837-45cc-893f-81c47adbb825",
+                        "question_id": "1bb973cc-b7d2-4bee-a8e1-cd7dc0c09fda"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/game/{session_id}/question/{question_id}": {
+      "get": {
+        "summary": "Get question",
+        "deprecated": false,
+        "description": "",
+        "tags": [
+          "Authentication",
+          "Public"
+        ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "description": "data.id",
+            "required": true,
+            "example": "fec92d0e-a837-45cc-893f-81c47adbb825",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "question_id",
+            "in": "path",
+            "description": "data.game_session_questions.id",
+            "required": true,
+            "example": "b405b767-0696-432b-9ee2-ac3698cb06c1",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "order": {
+                          "type": "integer"
+                        },
+                        "is_answered": {
+                          "type": "boolean"
+                        },
+                        "start_time": {
+                          "type": "null"
+                        },
+                        "session_id": {
+                          "type": "string"
+                        },
+                        "question": {
+                          "type": "object",
+                          "properties": {
+                            "title": {
+                              "type": "string"
+                            },
+                            "content": {
+                              "type": "string"
+                            },
+                            "options": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "text": {
+                                    "type": "string"
+                                  },
+                                  "is_correct": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "text",
+                                  "is_correct"
+                                ]
+                              }
+                            }
+                          },
+                          "required": [
+                            "title",
+                            "content",
+                            "options"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "order",
+                        "is_answered",
+                        "start_time",
+                        "session_id",
+                        "question"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                    "data"
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": {
+                    "id": "b405b767-0696-432b-9ee2-ac3698cb06c1",
+                    "order": 1,
+                    "is_answered": false,
+                    "start_time": null,
+                    "session_id": "fec92d0e-a837-45cc-893f-81c47adbb825",
+                    "question": {
+                      "title": "GRAMMAR Question 7",
+                      "content": "I should have ____ to my boss, but I don't like to ____.",
+                      "options": [
+                        {
+                          "id": "25513716-97cd-4ccb-8fdd-8505f0d4143d",
+                          "text": "complained / complain",
+                          "is_correct": true
+                        },
+                        {
+                          "id": "90a2475e-02df-4d25-92cc-24a397686537",
+                          "text": "complain / complained",
+                          "is_correct": false
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/game/answer": {
+      "post": {
+        "summary": "Answer",
+        "deprecated": false,
+        "description": "",
+        "tags": [
+          "Authentication",
+          "Public"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              },
+              "example": {
+                "session_id": "fec92d0e-a837-45cc-893f-81c47adbb825",
+                "question_id": "b405b767-0696-432b-9ee2-ac3698cb06c1",
+                "answer_id": "25513716-97cd-4ccb-8fdd-8505f0d4143d"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "remain_sec": {
+                          "type": "integer"
+                        },
+                        "is_end_game": {
+                          "type": "boolean"
+                        },
+                        "is_win": {
+                          "type": "boolean"
+                        },
+                        "is_lose": {
+                          "type": "boolean"
+                        },
+                        "is_correct": {
+                          "type": "boolean"
+                        },
+                        "is_answered": {
+                          "type": "boolean"
+                        },
+                        "session": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "status": {
+                              "type": "string"
+                            },
+                            "streak": {
+                              "type": "integer"
+                            },
+                            "score": {
+                              "type": "integer"
+                            },
+                            "correct_count": {
+                              "type": "integer"
+                            },
+                            "wrong_count": {
+                              "type": "integer"
+                            },
+                            "game": {
+                              "type": "object",
+                              "properties": {
+                                "win_condition": {
+                                  "type": "string"
+                                },
+                                "win_condition_value": {
+                                  "type": "integer"
+                                },
+                                "lose_condition": {
+                                  "type": "null"
+                                },
+                                "lose_condition_value": {
+                                  "type": "null"
+                                },
+                                "question_time_limit": {
+                                  "type": "integer"
+                                },
+                                "question_type": {
+                                  "type": "string"
+                                },
+                                "time_limit": {
+                                  "type": "integer"
+                                },
+                                "total_questions": {
+                                  "type": "integer"
+                                },
+                                "game_rule": {
+                                  "type": "object",
+                                  "properties": {
+                                    "modifier": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "object",
+                                        "properties": {
+                                          "game_modifier": {
+                                            "type": "object",
+                                            "properties": {
+                                              "id": {
+                                                "type": "string"
+                                              },
+                                              "target": {
+                                                "type": "string"
+                                              },
+                                              "type": {
+                                                "type": "string"
+                                              },
+                                              "for": {
+                                                "type": "string"
+                                              },
+                                              "amount": {
+                                                "type": "integer"
+                                              },
+                                              "isBonus": {
+                                                "type": "boolean"
+                                              },
+                                              "bonusType": {
+                                                "type": "null"
+                                              },
+                                              "bonusValue": {
+                                                "type": "integer"
+                                              }
+                                            },
+                                            "required": [
+                                              "id",
+                                              "target",
+                                              "type",
+                                              "for",
+                                              "amount",
+                                              "isBonus",
+                                              "bonusType",
+                                              "bonusValue"
+                                            ]
+                                          }
+                                        },
+                                        "required": [
+                                          "game_modifier"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "required": [
+                                    "modifier"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "win_condition",
+                                "win_condition_value",
+                                "lose_condition",
+                                "lose_condition_value",
+                                "question_time_limit",
+                                "question_type",
+                                "time_limit",
+                                "total_questions",
+                                "game_rule"
+                              ]
+                            },
+                            "perks": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "start_time": {
+                              "type": "string"
+                            },
+                            "penalty_second": {
+                              "type": "integer"
+                            },
+                            "position": {
+                              "type": "integer"
+                            },
+                            "current_question": {
+                              "type": "integer"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "status",
+                            "streak",
+                            "score",
+                            "correct_count",
+                            "wrong_count",
+                            "game",
+                            "perks",
+                            "start_time",
+                            "penalty_second",
+                            "position",
+                            "current_question"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "remain_sec",
+                        "is_end_game",
+                        "is_win",
+                        "is_lose",
+                        "is_correct",
+                        "is_answered",
+                        "session"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                    "data"
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": {
+                    "remain_sec": 0,
+                    "is_end_game": true,
+                    "is_win": false,
+                    "is_lose": true,
+                    "is_correct": true,
+                    "is_answered": true,
+                    "session": {
+                      "id": "fec92d0e-a837-45cc-893f-81c47adbb825",
+                      "status": "CLOSE",
+                      "streak": 0,
+                      "score": 1,
+                      "correct_count": 1,
+                      "wrong_count": 0,
+                      "game": {
+                        "win_condition": "SCORE",
+                        "win_condition_value": 10,
+                        "lose_condition": null,
+                        "lose_condition_value": null,
+                        "question_time_limit": 0,
+                        "question_type": "REPEAT",
+                        "time_limit": 300,
+                        "total_questions": 10,
+                        "game_rule": {
+                          "modifier": [
+                            {
+                              "game_modifier": {
+                                "id": "abf10fd3-44ff-4769-9d8d-67e83716ff9a",
+                                "target": "SCORE",
+                                "type": "PLUS",
+                                "for": "CORRECT",
+                                "amount": 1,
+                                "isBonus": false,
+                                "bonusType": null,
+                                "bonusValue": 0
+                              }
+                            },
+                            {
+                              "game_modifier": {
+                                "id": "3f88248a-691d-497a-a795-1ca6ee9743af",
+                                "target": "PENALTY_SEC",
+                                "type": "PLUS",
+                                "for": "INCORRECT",
+                                "amount": 15,
+                                "isBonus": false,
+                                "bonusType": null,
+                                "bonusValue": 0
+                              }
+                            }
+                          ]
+                        }
+                      },
+                      "perks": [],
+                      "start_time": "2025-10-15T02:10:32.167Z",
+                      "penalty_second": 0,
+                      "position": 0,
+                      "current_question": 1
+                    }
+                  }
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/game/pause-resume": {
+      "put": {
+        "summary": "Pause Resume",
+        "deprecated": false,
+        "description": "",
+        "tags": [
+          "Public",
+          "Authentication"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              },
+              "example": {
+                "session_id": "{{session_id}}"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/game/active-perk/{perk_id}": {
+      "get": {
+        "summary": "Active game perk ",
+        "deprecated": false,
+        "description": "",
+        "tags": [
+          "Authentication",
+          "Public"
+        ],
+        "parameters": [
+          {
+            "name": "perk_id",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {},
+    "responses": {},
+    "securitySchemes": {
+      "bearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  },
+  "servers": [],
+  "security": []
+}

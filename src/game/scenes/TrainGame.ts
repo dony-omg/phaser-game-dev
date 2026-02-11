@@ -12,6 +12,7 @@ type TrainCarSlot = {
 
 type TrainGameInitData = {
     gameCode?: string | null;
+    sessionId?: string | null;
     gameId?: string | null;
     questions?: GameQuestion[] | null;
     timeLimit?: number | null;
@@ -192,6 +193,7 @@ export class TrainGame extends Scene
     uiRoot!: Phaser.GameObjects.Container;
 
     gameCode: string = 'train_game';
+    sessionId: string | null = null;
     sessionGameId: string | null = null;
     sessionQuestions: GameQuestion[] | null = null;
     sessionTimeLimit: number | null = null;
@@ -210,6 +212,8 @@ export class TrainGame extends Scene
 
     private questions: GameQuestion[] = [];
     private currentCorrectIndex: number = 0;
+    private currentSessionQuestionId: string | null = null;
+    private currentOptionIds: string[] = [];
     private trainStepPx: number = 0;
 
     constructor ()
@@ -221,6 +225,7 @@ export class TrainGame extends Scene
     {
         this.gameCode = resolveGameCode(data?.gameCode ?? (this.registry.get('gameCode') as string | undefined));
         this.registry.set('gameCode', this.gameCode);
+        this.sessionId = data?.sessionId ?? null;
         this.sessionGameId = data?.gameId ?? null;
         this.sessionQuestions = data?.questions ?? null;
         this.sessionTimeLimit = data?.timeLimit ?? null;
@@ -596,7 +601,7 @@ export class TrainGame extends Scene
 
         this.quizPanel.onOptionSelected((index) => {
             if (this.quizLocked) return;
-            this.handleAnswer(index);
+            void this.handleAnswer(index);
         });
 
         this.layoutQuiz();
@@ -615,6 +620,8 @@ export class TrainGame extends Scene
 
         const question = this.getQuestionForIndex(index);
         const options = question.question.options.map((opt) => opt.text);
+        this.currentOptionIds = question.question.options.map((opt) => opt.id ?? '');
+        this.currentSessionQuestionId = question.session_question_id ?? null;
         let correctIndex = question.question.options.findIndex((opt) => opt.is_correct);
         if (correctIndex < 0) correctIndex = 0;
         this.currentCorrectIndex = correctIndex;
@@ -635,12 +642,22 @@ export class TrainGame extends Scene
         this.quizPanel.setInteractive(true);
     }
 
-    private handleAnswer (selectedIndex: number)
+    private async handleAnswer (selectedIndex: number)
     {
         if (this.quizLocked) return;
         this.quizLocked = true;
 
-        const isCorrect = selectedIndex === this.currentCorrectIndex;
+        let isCorrect = selectedIndex === this.currentCorrectIndex;
+        const selectedOptionId = this.currentOptionIds[selectedIndex];
+        if (this.sessionId && this.currentSessionQuestionId && selectedOptionId) {
+            try {
+                const { submitAnswer } = await import('../../services/api');
+                const res = await submitAnswer(this.sessionId, this.currentSessionQuestionId, selectedOptionId);
+                isCorrect = res.data.is_correct;
+            } catch (error) {
+                console.error('submitAnswer failed, fallback to local check', error);
+            }
+        }
 
         if (isCorrect) {
             this.setLeadCarState('correct');
@@ -1197,6 +1214,7 @@ export class TrainGame extends Scene
         this.gameOver = true;
 
         this.scene.start('GameOver', {
+            gameId: this.sessionGameId,
             score: this.score,
             bonus: 0,
             result,
