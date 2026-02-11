@@ -171,6 +171,9 @@ export class TrainGame extends Scene
     private debugMarkerLabels: Phaser.GameObjects.Text[] = [];
     private showHoverCoords = false;
     private hoverCoordText?: Phaser.GameObjects.Text;
+    private barrierGate?: Phaser.GameObjects.Image;
+    private barrierBaseAngle: number = 0;
+    private barrierIsOpen: boolean = false;
     camera!: Phaser.Cameras.Scene2D.Camera;
     background!: Phaser.GameObjects.Image;
     carSlots: TrainCarSlot[] = [];
@@ -240,6 +243,7 @@ export class TrainGame extends Scene
             this.layoutTrain();
             this.updateTrainCars(true);
         }
+        this.createBarrierGate();
         this.createQuizModal();
         this.openQuestion(this.currentIndex);
 
@@ -248,6 +252,7 @@ export class TrainGame extends Scene
             this.background.setPosition(newWidth / 2, newHeight / 2).setDisplaySize(newWidth, newHeight);
             this.layoutHud();
             this.layoutQuiz();
+            this.updateBarrierPosition();
         });
 
         EventBus.emit('current-scene-ready', this);
@@ -563,6 +568,8 @@ export class TrainGame extends Scene
             question: question.question.content,
             options
         });
+        this.updateBarrierPosition();
+        this.setBarrierOpen(false);
         this.layoutQuiz();
 
         this.quizOpen = true;
@@ -607,12 +614,14 @@ export class TrainGame extends Scene
         this.refreshLocks();
 
         if (this.currentIndex >= this.maxCars) {
+            this.setBarrierOpen(true);
             this.moveTrainToEnd(() => {
                 this.endGame(`Hoàn thành đủ ${this.maxCars} toa!`, 'win');
             });
             return;
         }
 
+        this.setBarrierOpen(true);
         this.moveTrainToIndex(this.currentIndex, () => {
             this.openQuestion(this.currentIndex);
         });
@@ -992,6 +1001,53 @@ export class TrainGame extends Scene
         }
         this.refreshLocks();
         this.updateTrainCars(true);
+    }
+
+    private createBarrierGate ()
+    {
+        if (!this.textures.exists('train-barrier')) return;
+        const gate = this.add.image(0, 0, 'train-barrier');
+        gate.setDepth(6);
+        gate.setOrigin(0.08, 0.5);
+        this.barrierGate = gate;
+        this.updateBarrierPosition();
+        this.setBarrierOpen(false, true);
+    }
+
+    private updateBarrierPosition ()
+    {
+        if (!this.barrierGate) return;
+        const baseWidth = 750;
+        const baseHeight = 1334;
+        const scaleX = this.scale.width / baseWidth;
+        const scaleY = this.scale.height / baseHeight;
+        const baseX = 355;
+        const baseY = 230;
+        this.barrierGate.setPosition(baseX * scaleX, baseY * scaleY);
+        const scale = Math.min(scaleX, scaleY) * 0.35;
+        this.barrierGate.setScale(scale);
+        this.barrierBaseAngle = 0;
+        const targetAngle = this.barrierIsOpen ? this.barrierBaseAngle - Phaser.Math.DegToRad(45) : this.barrierBaseAngle;
+        this.barrierGate.setRotation(targetAngle);
+    }
+
+    private setBarrierOpen (open: boolean, immediate: boolean = false)
+    {
+        if (!this.barrierGate) return;
+        this.barrierIsOpen = open;
+        const targetAngle = open
+            ? this.barrierBaseAngle - Phaser.Math.DegToRad(45)
+            : this.barrierBaseAngle;
+        if (immediate) {
+            this.barrierGate.setRotation(targetAngle);
+            return;
+        }
+        this.tweens.add({
+            targets: this.barrierGate,
+            rotation: targetAngle,
+            duration: 220,
+            ease: 'Sine.easeInOut'
+        });
     }
 
     private updateTrainCars (force: boolean = false)
