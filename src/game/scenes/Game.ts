@@ -178,8 +178,13 @@ export class Game extends Scene
             fontSize: '28px',
             color: '#0f172a'
         }).setOrigin(0.5);
+        const backHit = this.add.zone(0, 0, 48, 48)
+            .setOrigin(0.5)
+            .setInteractive({ useHandCursor: true });
+        backHit.on('pointerup', () => this.handleBackToGameList());
         this.hudBackButton.add([backBg, backIcon]);
         this.hudBackButton.setSize(48, 48);
+        this.hudBackButton.add(backHit);
 
         // Points pill
         this.hudPointsPill = this.add.container(0, 0);
@@ -279,6 +284,10 @@ export class Game extends Scene
         const rightEdge = width - sideInset;
         this.hudHeartsPill.setPosition(rightEdge - heartsW / 2, topInset + 24);
         this.hudTimerPill.setPosition(rightEdge - heartsW - gap - timerW / 2, topInset + 24);
+    }
+
+    private handleBackToGameList(): void {
+        window.location.href = '/';
     }
 
     createJumpButton(x: number, y: number) {

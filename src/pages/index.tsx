@@ -8,6 +8,7 @@ import { ApiMode, getApiMode, getDefaultApiMode, setApiMode } from "@/services/a
 const inter = Inter({ subsets: ["latin"] });
 
 export default function Home() {
+    const showApiDebugPanel = process.env.NEXT_PUBLIC_SHOW_API_DEBUG === "1";
     const [apiMode, setApiModeState] = useState<ApiMode>(getDefaultApiMode());
 
     useEffect(() => {
@@ -31,27 +32,29 @@ export default function Home() {
             </Head>
             <main className={`${styles.main} ${inter.className}`}>
                 <div className={styles.hubWrap}>
-                    <section className={styles.debugPanel}>
-                        <div className={styles.debugTitle}>Debug Hub Mode</div>
-                        <div className={styles.debugRow}>
-                            <button
-                                type="button"
-                                onClick={() => applyMode("real")}
-                                className={`${styles.modeBtn} ${apiMode === "real" ? styles.activeReal : ""}`}
-                            >
-                                REAL API
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => applyMode("mock")}
-                                className={`${styles.modeBtn} ${apiMode === "mock" ? styles.activeMock : ""}`}
-                            >
-                                MOCK API
-                            </button>
-                        </div>
-                        <div className={styles.debugMeta}>Current: <b>{apiMode.toUpperCase()}</b></div>
-                        <div className={styles.debugMeta}>Base URL: {apiUrl}</div>
-                    </section>
+                    {showApiDebugPanel ? (
+                        <section className={styles.debugPanel}>
+                            <div className={styles.debugTitle}>Debug Hub Mode</div>
+                            <div className={styles.debugRow}>
+                                <button
+                                    type="button"
+                                    onClick={() => applyMode("real")}
+                                    className={`${styles.modeBtn} ${apiMode === "real" ? styles.activeReal : ""}`}
+                                >
+                                    REAL API
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => applyMode("mock")}
+                                    className={`${styles.modeBtn} ${apiMode === "mock" ? styles.activeMock : ""}`}
+                                >
+                                    MOCK API
+                                </button>
+                            </div>
+                            <div className={styles.debugMeta}>Current: <b>{apiMode.toUpperCase()}</b></div>
+                            <div className={styles.debugMeta}>Base URL: {apiUrl}</div>
+                        </section>
+                    ) : null}
 
                     <div className={styles.mapWrap}>
                         <img

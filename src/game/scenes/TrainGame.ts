@@ -348,13 +348,13 @@ export class TrainGame extends Scene
             fontSize: '26px',
             color: '#0f172a'
         }).setOrigin(0.5);
+        const backHit = this.add.zone(0, 0, 44, 44)
+            .setOrigin(0.5)
+            .setInteractive({ useHandCursor: true });
+        backHit.on('pointerup', () => this.handleBackToGameList());
         this.hudBackButton.add([backBg, backIcon]);
         this.hudBackButton.setSize(44, 44);
-        this.hudBackButton.setInteractive(new Phaser.Geom.Rectangle(-22, -22, 44, 44), Phaser.Geom.Rectangle.Contains);
-        this.hudBackButton.on('pointerdown', () => {
-            if (this.quizOpen) return;
-            this.scene.start('MainMenu');
-        });
+        this.hudBackButton.add(backHit);
 
         this.hudPointsPill = this.add.container(0, 0);
         const pointsBg = this.add.graphics();
@@ -403,6 +403,11 @@ export class TrainGame extends Scene
         this.hudBackButton.setPosition(sideInset + 22, topInset + 22);
         this.hudPointsPill.setPosition(width / 2, topInset + 22);
         this.hudTimerPill.setPosition(rightEdge - 48, topInset + 22);
+    }
+
+    private handleBackToGameList (): void
+    {
+        window.location.href = '/';
     }
 
     private createTrafficLight ()
