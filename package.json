@@ -23,8 +23,6 @@
     ],
     "scripts": {
         "clean": "rm -rf .next out dist",
-        "predev": "npm run clean",
-        "predev-nolog": "npm run clean",
         "prebuild": "npm run clean",
         "prebuild-nolog": "npm run clean",
         "dev": "node log.js dev & next dev -p 8080",
