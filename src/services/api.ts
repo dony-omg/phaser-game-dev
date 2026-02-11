@@ -1,5 +1,3 @@
-import { isMockApiMode } from './apiMode';
-
 export type GameOption = {
     id?: string;
     text: string;
@@ -119,10 +117,12 @@ const mockQuestions: GameQuestion[] = [
 ];
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const ALWAYS_USE_MOCK_API = true;
 
 function shouldUseMock(options?: ApiCallOptions): boolean {
+    if (ALWAYS_USE_MOCK_API) return true;
     if (options?.forceReal) return false;
-    return isMockApiMode();
+    return true;
 }
 
 function toApiGameCode(gameCode: string): string {
@@ -240,7 +240,7 @@ export async function startGameSession(
     console.log('[API] startGameSession invoked', {
         gameCode,
         forceReal: Boolean(options?.forceReal),
-        mockMode: isMockApiMode()
+        mockMode: shouldUseMock(options)
     });
 
     if (shouldUseMock(options)) {

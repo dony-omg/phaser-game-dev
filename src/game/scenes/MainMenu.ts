@@ -63,7 +63,7 @@ export class MainMenu extends Scene
 
         if (gameConfig.code === 'vocab_race') {
             this.debugText.setText('DEBUG: preflight -> calling /game/list-game ...');
-            fetchGameList({ forceReal: true })
+            fetchGameList()
                 .then((res) => {
                     console.error('[GAME][PREFLIGHT] list-game success', {
                         count: res.data?.length ?? 0
@@ -126,14 +126,12 @@ export class MainMenu extends Scene
         this.debugText.setText('DEBUG: start clicked -> calling startGameSession...');
 
         const gameConfig = getGameConfig(this.gameCode);
-        const forceReal = gameConfig.code === 'vocab_race';
-        startGameSession(gameConfig.code, { forceReal })
+        startGameSession(gameConfig.code)
             .then((res) => {
                 const data = res.data;
                 console.log('[GAME][SESSION] startGameSession success', {
                     gameCode: this.gameCode,
                     apiMode: getApiMode(),
-                    forceReal,
                     sessionId: data.id,
                     gameId: data.game_id,
                     questionCount: data.questions?.length ?? 0,
@@ -153,16 +151,10 @@ export class MainMenu extends Scene
                 console.error('[GAME][SESSION] startGameSession failed, fallback to local questions', {
                     gameCode: this.gameCode,
                     apiMode: getApiMode(),
-                    forceReal,
                     error: err
                 });
                 const errorMessage = err instanceof Error ? err.message : String(err);
                 this.debugText.setText(`DEBUG: API failed -> ${errorMessage}`);
-
-                if (forceReal) {
-                    this.description.setText('Không lấy được câu hỏi từ REAL API.\nKiểm tra token/API rồi thử lại.');
-                    return;
-                }
 
                 const nextScene = gameConfig.code === 'train_game' ? 'TrainGame' : 'Game';
                 this.scene.start(nextScene, {

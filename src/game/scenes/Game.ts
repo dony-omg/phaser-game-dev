@@ -829,8 +829,7 @@ export class Game extends Scene
                 const res = await submitAnswer(
                     this.sessionId,
                     question.sessionQuestionId,
-                    selectedOptionId,
-                    { forceReal: this.gameCode === 'vocab_race' }
+                    selectedOptionId
                 );
                 isCorrect = res.data.is_correct;
             } catch (error) {
@@ -1149,11 +1148,7 @@ export class Game extends Scene
     private submitSessionResult(): void {
         if (!this.sessionGameId) return;
         import('../../services/api')
-            .then(({ endGameSession }) =>
-                endGameSession(this.sessionGameId as string, this.score, {
-                    forceReal: this.gameCode === 'vocab_race'
-                })
-            )
+            .then(({ endGameSession }) => endGameSession(this.sessionGameId as string, this.score))
             .catch((err) => {
                 console.error('endGameSession failed', err);
             });
