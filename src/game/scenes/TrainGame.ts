@@ -621,7 +621,6 @@ export class TrainGame extends Scene
             return;
         }
 
-        this.setBarrierOpen(true);
         this.moveTrainToIndex(this.currentIndex, () => {
             this.openQuestion(this.currentIndex);
         });
