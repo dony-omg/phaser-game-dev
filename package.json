@@ -33,7 +33,7 @@
         "build-nolog": "NEXT_STATIC_EXPORT=1 NEXT_DIST_DIR=.next-static next build"
     },
     "dependencies": {
-        "next": "15.3.1",
+        "next": "15.5.12",
         "phaser": "^3.90.0",
         "react": "19.0.0",
         "react-dom": "19.0.0"
