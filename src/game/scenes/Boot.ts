@@ -43,7 +43,7 @@ export class Boot extends Scene
             this.load.image('bg-6', loaderBg);
 
             // Logo for branding during load
-            this.load.image('logo', `${assetRoot}/game 1 exp.png`);
+            this.load.image('logo', `${assetRoot}/background.png`);
         } else {
             // Parallax background layers for loader
             this.load.image('bg-1', `${assetRoot}/backgrounds/1.png`);
