@@ -147,6 +147,7 @@ const FALLBACK_QUESTIONS: GameQuestion[] = [
 export class TrainGame extends Scene
 {
     private debugTrack = false;
+    private showRailOverlay = false;
     private showCars = true;
     private trainMoving = false;
     private trackSpline?: Phaser.Curves.Spline;
@@ -1414,7 +1415,7 @@ export class TrainGame extends Scene
             this.drawCurveMarkers(spline, 11);
         }
 
-        this.setRailwayVisible(true);
+        this.setRailwayVisible(this.showRailOverlay);
         this.setDebugTrackVisible(this.debugTrack);
 
         this.trainDistancePx = 0;
