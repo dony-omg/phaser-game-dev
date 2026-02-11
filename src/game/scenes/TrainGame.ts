@@ -17,6 +17,8 @@ type TrainGameInitData = {
     timeLimit?: number | null;
 };
 
+type LeadCarState = 'idle' | 'correct' | 'incorrect';
+
 const FALLBACK_QUESTIONS: GameQuestion[] = [
     {
         question: {
@@ -165,6 +167,9 @@ export class TrainGame extends Scene
     private railSegmentLengths: number[] = [];
     private railTotalLength: number = 0;
     private readonly trainRotationOffset = Phaser.Math.DegToRad(-90);
+    private leadCarState: LeadCarState = 'idle';
+    private leadCarBaseSize: { width: number; height: number } | null = null;
+    private leadCarBadge?: Phaser.GameObjects.Image;
     private railwayContainer?: Phaser.GameObjects.Container;
     private debugCurveGraphics?: Phaser.GameObjects.Graphics;
     private debugMarkerGraphics?: Phaser.GameObjects.Graphics;
@@ -472,9 +477,60 @@ export class TrainGame extends Scene
             const carLength = Math.max(referenceCar.displayWidth, referenceCar.displayHeight);
             this.trainGapPx = carLength * this.trainCarGapFactor;
             this.trainStepPx = this.trainGapPx;
+            this.leadCarBaseSize = {
+                width: referenceCar.displayWidth,
+                height: referenceCar.displayHeight
+            };
         }
 
+        this.carSlots[0]?.car.setTexture('train-car-1');
+        this.setLeadCarState('idle');
         this.refreshLocks();
+    }
+
+    private getLeadCarTextureKey (state: LeadCarState)
+    {
+        switch (state) {
+            case 'correct':
+                return 'train-fox-correct';
+            case 'incorrect':
+                return 'train-fox-incorrect';
+            case 'idle':
+            default:
+                return 'train-fox-idle';
+        }
+    }
+
+    private setLeadCarState (state: LeadCarState)
+    {
+        this.leadCarState = state;
+        const leadCar = this.carSlots[0]?.car;
+        if (!leadCar) return;
+        if (leadCar.texture.key !== 'train-car-1') {
+            leadCar.setTexture('train-car-1');
+        }
+        if (this.leadCarBaseSize) {
+            leadCar.setDisplaySize(this.leadCarBaseSize.width, this.leadCarBaseSize.height);
+            leadCar.setOrigin(0.5, 0.5);
+        }
+
+        const textureKey = this.getLeadCarTextureKey(state);
+        if (!this.textures.exists(textureKey)) {
+            if (this.leadCarBadge) this.leadCarBadge.setVisible(false);
+            return;
+        }
+
+        if (!this.leadCarBadge) {
+            this.leadCarBadge = this.add.image(leadCar.x, leadCar.y, textureKey)
+                .setDepth(leadCar.depth + 1)
+                .setOrigin(0.5, 0.5);
+        } else {
+            this.leadCarBadge.setTexture(textureKey).setVisible(true);
+        }
+
+        if (this.leadCarBaseSize && this.leadCarBadge) {
+            this.leadCarBadge.setDisplaySize(this.leadCarBaseSize.width * 0.5, this.leadCarBaseSize.height * 0.5);
+        }
     }
 
     private createLockOverlay (x: number, y: number, width: number, height: number, index: number)
@@ -555,6 +611,7 @@ export class TrainGame extends Scene
     private openQuestion (index: number)
     {
         if (this.quizOpen || this.gameOver) return;
+        this.setLeadCarState('idle');
 
         const question = this.getQuestionForIndex(index);
         const options = question.question.options.map((opt) => opt.text);
@@ -586,6 +643,7 @@ export class TrainGame extends Scene
         const isCorrect = selectedIndex === this.currentCorrectIndex;
 
         if (isCorrect) {
+            this.setLeadCarState('correct');
             this.quizPanel.setFeedback('correct');
             this.quizPanel.setOptionState(selectedIndex, 'correct');
             this.quizPanel.setInteractive(false);
@@ -594,11 +652,13 @@ export class TrainGame extends Scene
                 this.applyCorrect();
             });
         } else {
+            this.setLeadCarState('incorrect');
             this.quizPanel.setFeedback('wrong');
             this.quizPanel.setOptionState(selectedIndex, 'wrong');
             this.quizPanel.setInteractive(false);
             this.time.delayedCall(650, () => {
                 this.applyWrong();
+                this.setLeadCarState('idle');
                 this.quizPanel.setOptionState(selectedIndex, 'normal');
                 this.quizPanel.setFeedback('idle');
                 this.quizPanel.setInteractive(true);
@@ -1063,6 +1123,17 @@ export class TrainGame extends Scene
             slot.car.setPosition(sample.position.x, sample.position.y);
             slot.car.setRotation(sample.angle + this.trainRotationOffset);
         }
+
+        const leadCar = this.carSlots[0]?.car;
+        if (leadCar && this.leadCarBadge) {
+            const offsetX = -leadCar.displayWidth * 0.34;
+            const offsetY = -leadCar.displayHeight * 0.08;
+            const rotation = leadCar.rotation;
+            const worldX = leadCar.x + Math.cos(rotation) * offsetX - Math.sin(rotation) * offsetY;
+            const worldY = leadCar.y + Math.sin(rotation) * offsetX + Math.cos(rotation) * offsetY;
+            this.leadCarBadge.setPosition(worldX, worldY);
+            this.leadCarBadge.setRotation(rotation);
+        }
     }
 
     private setShowCars (value: boolean)
@@ -1072,6 +1143,9 @@ export class TrainGame extends Scene
             slot.car.setVisible(value);
             slot.lock.setVisible(false);
         });
+        if (this.leadCarBadge) {
+            this.leadCarBadge.setVisible(value);
+        }
         if (value) {
             this.refreshLocks();
             this.updateTrainCars(true);

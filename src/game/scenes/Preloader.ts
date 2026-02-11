@@ -132,6 +132,9 @@ export class Preloader extends Scene
             this.load.image('train-light-red', `${assetRoot}/Fox and Traffic light/Red.png`);
             this.load.image('train-light-yellow', `${assetRoot}/Fox and Traffic light/Yellow.png`);
             this.load.image('train-light-green', `${assetRoot}/Fox and Traffic light/Green.png`);
+            this.load.image('train-fox-idle', `${assetRoot}/Fox and Traffic light/Idle.png`);
+            this.load.image('train-fox-correct', `${assetRoot}/Fox and Traffic light/Correct.png`);
+            this.load.image('train-fox-incorrect', `${assetRoot}/Fox and Traffic light/Incorrect.png`);
             this.load.image('train-barrier', `${assetRoot}/s.png`);
 
             for (let i = 1; i <= 11; i += 1) {
