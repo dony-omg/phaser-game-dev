@@ -126,6 +126,7 @@ export class Preloader extends Scene
 
         if (gameConfig.code === 'train_game') {
             // ==================== TRAIN GAME ASSETS ====================
+            this.load.image('star', '/assets/games/tower/ui/star.png');
             this.load.image('train-bg', `${assetRoot}/background copy 2.png`);
             this.load.image('train-engine', `${assetRoot}/train.png`);
             this.load.image('train-light', `${assetRoot}/light.png`);

@@ -191,6 +191,10 @@ export class TrainGame extends Scene
     hudPointsPill!: Phaser.GameObjects.Container;
     hudTimerPill!: Phaser.GameObjects.Container;
     uiRoot!: Phaser.GameObjects.Container;
+    startModal!: Phaser.GameObjects.Container;
+    startModalPanel!: Phaser.GameObjects.Container;
+    startModalOpen: boolean = false;
+    hasStarted: boolean = false;
 
     gameCode: string = 'train_game';
     sessionId: string | null = null;
@@ -255,7 +259,8 @@ export class TrainGame extends Scene
         }
         this.createBarrierGate();
         this.createQuizModal();
-        this.openQuestion(this.currentIndex);
+        this.createStartModal();
+        this.openStartModal();
 
         this.scale.on('resize', () => {
             const { width: newWidth, height: newHeight } = this.scale;
@@ -263,6 +268,7 @@ export class TrainGame extends Scene
             this.layoutHud();
             this.layoutQuiz();
             this.updateBarrierPosition();
+            this.layoutStartModal();
         });
 
         EventBus.emit('current-scene-ready', this);
@@ -271,6 +277,10 @@ export class TrainGame extends Scene
     update (_time: number, delta: number)
     {
         if (this.gameOver) return;
+        if (!this.hasStarted) {
+            this.updateTrainCars();
+            return;
+        }
 
         this.remainingMs = Math.max(0, this.remainingMs - delta);
         const seconds = Math.ceil(this.remainingMs / 1000);
@@ -334,7 +344,9 @@ export class TrainGame extends Scene
         pointsBg.fillRoundedRect(-pointsW / 2, -pointsH / 2, pointsW, pointsH, 22);
         pointsBg.lineStyle(2, 0xf59e0b, 0.4);
         pointsBg.strokeRoundedRect(-pointsW / 2, -pointsH / 2, pointsW, pointsH, 22);
-        const star = this.add.image(-pointsW / 2 + 24, 0, 'star').setScale(0.32).setTint(0xfbbf24);
+        const star = this.add.image(-pointsW / 2 + 24, 0, 'star')
+            .setScale(0.32)
+            .setTint(0xfbbf24);
         this.scoreText = this.add.text(-pointsW / 2 + 46, 0, 'POINTS: 00', {
             fontFamily: 'Arial Black',
             fontSize: '18px',
@@ -607,6 +619,151 @@ export class TrainGame extends Scene
         this.layoutQuiz();
     }
 
+    private createStartModal ()
+    {
+        const { width, height } = this.scale;
+        const container = this.add.container(0, 0).setDepth(2100).setVisible(false);
+
+        const overlay = this.add.rectangle(0, 0, width, height, 0xffffff, 0.12).setOrigin(0, 0);
+
+        const panel = this.add.container(width / 2, Math.round(height * 0.56));
+        const panelWidth = Math.min(620, width - 80);
+        const panelHeight = Math.min(220, Math.round(height * 0.32));
+
+        const panelShadow = this.add.graphics();
+        panelShadow.fillStyle(0x000000, 0.18);
+        panelShadow.fillRoundedRect(-panelWidth / 2 + 8, -panelHeight / 2 + 10, panelWidth, panelHeight, 30);
+
+        const panelBg = this.add.graphics();
+        panelBg.fillStyle(0xffffff, 0.85);
+        panelBg.fillRoundedRect(-panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight, 28);
+        panelBg.lineStyle(2, 0xffffff, 0.65);
+        panelBg.strokeRoundedRect(-panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight, 28);
+
+        const title = this.add.text(0, -38, 'Answer the questions to help the\ntrain go ahead.', {
+            fontFamily: 'Arial Black',
+            fontSize: '20px',
+            color: '#0f172a',
+            align: 'center',
+            lineSpacing: 6
+        }).setOrigin(0.5);
+
+        const button = this.createStartButton(0, Math.round(panelHeight * 0.23));
+
+        panel.add([panelShadow, panelBg, title, button]);
+        container.add([overlay, panel]);
+
+        this.startModal = container;
+        this.startModalPanel = panel;
+        this.uiRoot.add(container);
+        this.layoutStartModal();
+    }
+
+    private layoutStartModal ()
+    {
+        if (!this.startModal || !this.startModalPanel) return;
+        const { width, height } = this.scale;
+        const overlay = this.startModal.list[0];
+        if (overlay && 'setSize' in overlay) {
+            (overlay as Phaser.GameObjects.Rectangle).setSize(width, height);
+        }
+        this.startModalPanel.setPosition(width / 2, Math.round(height * 0.56));
+    }
+
+    private createStartButton (x: number, y: number)
+    {
+        const container = this.add.container(x, y);
+        const width = 530;
+        const height = 72;
+        const radius = 30;
+
+        const shadow = this.add.graphics();
+        shadow.fillStyle(0x1e3a8a, 0.18);
+        shadow.fillRoundedRect(-width / 2 + 4, -height / 2 + 6, width, height, radius);
+
+        const bg = this.add.graphics();
+        const draw = (fill: number, stroke: number) => {
+            bg.clear();
+            bg.fillStyle(fill, 1);
+            bg.fillRoundedRect(-width / 2, -height / 2, width, height, radius);
+            bg.lineStyle(2, stroke, 0.65);
+            bg.strokeRoundedRect(-width / 2, -height / 2, width, height, radius);
+        };
+        draw(0x3b82f6, 0x93c5fd);
+
+        const text = this.add.text(0, 1, 'Start Game', {
+            fontFamily: 'Arial Black',
+            fontSize: '34px',
+            color: '#ffffff'
+        }).setOrigin(0.5).setScale(0.66);
+
+        const hit = this.add.rectangle(0, 0, width + 16, height + 16, 0xffffff, 0.001);
+        hit.setInteractive();
+
+        container.add([shadow, bg, text, hit]);
+        container.setSize(width, height);
+
+        hit.on('pointerover', () => {
+            draw(0x2563eb, 0xbfdbfe);
+            this.input.setDefaultCursor('pointer');
+            this.tweens.add({ targets: container, scale: 1.02, duration: 100, ease: 'Sine.easeOut' });
+        });
+        hit.on('pointerout', () => {
+            draw(0x3b82f6, 0x93c5fd);
+            this.input.setDefaultCursor('default');
+            this.tweens.add({ targets: container, scale: 1, duration: 100, ease: 'Sine.easeOut' });
+        });
+        hit.on('pointerdown', () => {
+            if (!this.startModalOpen) return;
+            draw(0x1d4ed8, 0xbfdbfe);
+            this.tweens.add({ targets: container, scale: 0.98, duration: 70, ease: 'Sine.easeOut' });
+            this.startGameFlow();
+        });
+        hit.on('pointerup', () => {
+            draw(0x2563eb, 0xbfdbfe);
+            this.tweens.add({ targets: container, scale: 1.02, duration: 70, ease: 'Sine.easeOut' });
+        });
+
+        this.tweens.add({
+            targets: container,
+            scale: 1.03,
+            duration: 850,
+            yoyo: true,
+            repeat: -1
+        });
+
+        return container;
+    }
+
+    private openStartModal ()
+    {
+        if (!this.startModal) return;
+        this.startModalOpen = true;
+        this.hasStarted = false;
+        this.startModal.setVisible(true);
+        this.startModal.setAlpha(0);
+        this.tweens.add({
+            targets: this.startModal,
+            alpha: 1,
+            duration: 180
+        });
+    }
+
+    private closeStartModal ()
+    {
+        if (!this.startModal) return;
+        this.startModalOpen = false;
+        this.startModal.setVisible(false);
+    }
+
+    private startGameFlow ()
+    {
+        if (this.hasStarted) return;
+        this.hasStarted = true;
+        this.closeStartModal();
+        this.openQuestion(this.currentIndex);
+    }
+
     private layoutQuiz ()
     {
         const { width, height } = this.scale;
@@ -616,6 +773,7 @@ export class TrainGame extends Scene
     private openQuestion (index: number)
     {
         if (this.quizOpen || this.gameOver) return;
+        if (!this.hasStarted) return;
         this.setLeadCarState('idle');
 
         const question = this.getQuestionForIndex(index);
