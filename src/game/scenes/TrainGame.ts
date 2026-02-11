@@ -193,6 +193,9 @@ export class TrainGame extends Scene
     uiRoot!: Phaser.GameObjects.Container;
     startModal!: Phaser.GameObjects.Container;
     startModalPanel!: Phaser.GameObjects.Container;
+    timeUpModal!: Phaser.GameObjects.Container;
+    timeUpModalPanel!: Phaser.GameObjects.Container;
+    timeUpTitleText!: Phaser.GameObjects.Text;
     startModalOpen: boolean = false;
     hasStarted: boolean = false;
 
@@ -240,6 +243,20 @@ export class TrainGame extends Scene
         const { width, height } = this.scale;
         const gameConfig = getGameConfig(this.gameCode);
 
+        // Reset runtime state on every create() because scene.restart reuses the same instance.
+        this.gameOver = false;
+        this.quizOpen = false;
+        this.quizLocked = false;
+        this.startModalOpen = false;
+        this.hasStarted = false;
+        this.currentSessionQuestionId = null;
+        this.currentOptionIds = [];
+        this.leadCarState = 'idle';
+        this.barrierIsOpen = false;
+
+        this.carSlots = [];
+        this.leadCarBadge = undefined;
+
         this.camera = this.cameras.main;
         this.camera.setBackgroundColor(gameConfig.backgroundColor);
 
@@ -260,6 +277,7 @@ export class TrainGame extends Scene
         this.createBarrierGate();
         this.createQuizModal();
         this.createStartModal();
+        this.createTimeUpModal();
         this.openStartModal();
 
         this.scale.on('resize', () => {
@@ -269,6 +287,7 @@ export class TrainGame extends Scene
             this.layoutQuiz();
             this.updateBarrierPosition();
             this.layoutStartModal();
+            this.layoutTimeUpModal();
         });
 
         EventBus.emit('current-scene-ready', this);
@@ -290,7 +309,7 @@ export class TrainGame extends Scene
         }
 
         if (this.remainingMs <= 0 && !this.gameOver) {
-            this.endGame('Hết thời gian.', 'lose');
+            this.endGame('Out of time.', 'lose');
         }
 
         this.updateTrainCars();
@@ -523,6 +542,10 @@ export class TrainGame extends Scene
         this.leadCarState = state;
         const leadCar = this.carSlots[0]?.car;
         if (!leadCar) return;
+        if (!leadCar.scene) return;
+        if (this.leadCarBadge && !this.leadCarBadge.scene) {
+            this.leadCarBadge = undefined;
+        }
         if (leadCar.texture.key !== 'train-car-1') {
             leadCar.setTexture('train-car-1');
         }
@@ -545,7 +568,7 @@ export class TrainGame extends Scene
             this.leadCarBadge.setTexture(textureKey).setVisible(true);
         }
 
-        if (this.leadCarBaseSize && this.leadCarBadge) {
+        if (this.leadCarBaseSize && this.leadCarBadge && this.leadCarBadge.scene) {
             this.leadCarBadge.setDisplaySize(this.leadCarBaseSize.width * 0.5, this.leadCarBaseSize.height * 0.5);
         }
     }
@@ -560,7 +583,7 @@ export class TrainGame extends Scene
         const bg = this.add.rectangle(0, 0, panelW, panelH, 0x1f2937, 0.9);
         bg.setStrokeStyle(2, 0xfbbf24, 0.9);
 
-        const text = this.add.text(0, 0, 'MỞ KHÓA', {
+        const text = this.add.text(0, 0, 'UNLOCK', {
             fontFamily: 'Arial Black',
             fontSize: '18px',
             color: '#f8fafc'
@@ -597,9 +620,13 @@ export class TrainGame extends Scene
     private refreshLocks ()
     {
         this.carSlots.forEach((slot) => {
+            if (!slot || !slot.car || !slot.lock) return;
+            if (!slot.car.scene || !slot.lock.scene) return;
             slot.car.setAlpha(1);
             slot.lock.setVisible(false);
-            slot.lock.disableInteractive();
+            if (slot.lock.input) {
+                slot.lock.disableInteractive();
+            }
         });
 
         const points = Math.max(0, this.score);
@@ -659,6 +686,44 @@ export class TrainGame extends Scene
         this.layoutStartModal();
     }
 
+    private createTimeUpModal ()
+    {
+        const { width, height } = this.scale;
+        const container = this.add.container(0, 0).setDepth(2200).setVisible(false);
+        const overlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.1).setOrigin(0, 0);
+
+        const panel = this.add.container(width / 2, Math.round(height * 0.56));
+        const panelWidth = Math.min(620, width - 80);
+        const panelHeight = Math.min(220, Math.round(height * 0.32));
+
+        const panelShadow = this.add.graphics();
+        panelShadow.fillStyle(0x000000, 0.18);
+        panelShadow.fillRoundedRect(-panelWidth / 2 + 8, -panelHeight / 2 + 10, panelWidth, panelHeight, 30);
+
+        const panelBg = this.add.graphics();
+        panelBg.fillStyle(0xffffff, 0.85);
+        panelBg.fillRoundedRect(-panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight, 28);
+        panelBg.lineStyle(2, 0xffffff, 0.65);
+        panelBg.strokeRoundedRect(-panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight, 28);
+
+        this.timeUpTitleText = this.add.text(0, -14, 'Out of time! Failed!', {
+            fontFamily: 'Arial Black',
+            fontSize: '20px',
+            color: '#0f172a',
+            align: 'center'
+        }).setOrigin(0.5);
+
+        const button = this.createTimeoutButton(0, Math.round(panelHeight * 0.23));
+
+        panel.add([panelShadow, panelBg, this.timeUpTitleText, button]);
+        container.add([overlay, panel]);
+
+        this.timeUpModal = container;
+        this.timeUpModalPanel = panel;
+        this.uiRoot.add(container);
+        this.layoutTimeUpModal();
+    }
+
     private layoutStartModal ()
     {
         if (!this.startModal || !this.startModalPanel) return;
@@ -668,6 +733,17 @@ export class TrainGame extends Scene
             (overlay as Phaser.GameObjects.Rectangle).setSize(width, height);
         }
         this.startModalPanel.setPosition(width / 2, Math.round(height * 0.56));
+    }
+
+    private layoutTimeUpModal ()
+    {
+        if (!this.timeUpModal || !this.timeUpModalPanel) return;
+        const { width, height } = this.scale;
+        const overlay = this.timeUpModal.list[0];
+        if (overlay && 'setSize' in overlay) {
+            (overlay as Phaser.GameObjects.Rectangle).setSize(width, height);
+        }
+        this.timeUpModalPanel.setPosition(width / 2, Math.round(height * 0.56));
     }
 
     private createStartButton (x: number, y: number)
@@ -735,6 +811,71 @@ export class TrainGame extends Scene
         return container;
     }
 
+    private createTimeoutButton (x: number, y: number)
+    {
+        const container = this.add.container(x, y);
+        const width = 530;
+        const height = 72;
+        const radius = 30;
+
+        const shadow = this.add.graphics();
+        shadow.fillStyle(0x1e3a8a, 0.18);
+        shadow.fillRoundedRect(-width / 2 + 4, -height / 2 + 6, width, height, radius);
+
+        const bg = this.add.graphics();
+        const draw = (fill: number, stroke: number) => {
+            bg.clear();
+            bg.fillStyle(fill, 1);
+            bg.fillRoundedRect(-width / 2, -height / 2, width, height, radius);
+            bg.lineStyle(2, stroke, 0.65);
+            bg.strokeRoundedRect(-width / 2, -height / 2, width, height, radius);
+        };
+        draw(0x3b82f6, 0x93c5fd);
+
+        const text = this.add.text(0, 1, 'Play Again', {
+            fontFamily: 'Arial Black',
+            fontSize: '34px',
+            color: '#ffffff'
+        }).setOrigin(0.5).setScale(0.66);
+
+        const hit = this.add.rectangle(0, 0, width + 16, height + 16, 0xffffff, 0.001);
+        hit.setInteractive();
+
+        container.add([shadow, bg, text, hit]);
+        container.setSize(width, height);
+
+        hit.on('pointerover', () => {
+            if (hit.getData('restarting')) return;
+            draw(0x2563eb, 0xbfdbfe);
+            this.input.setDefaultCursor('pointer');
+            this.tweens.add({ targets: container, scale: 1.02, duration: 100, ease: 'Sine.easeOut' });
+        });
+        hit.on('pointerout', () => {
+            if (hit.getData('restarting')) return;
+            draw(0x3b82f6, 0x93c5fd);
+            this.input.setDefaultCursor('default');
+            this.tweens.add({ targets: container, scale: 1, duration: 100, ease: 'Sine.easeOut' });
+        });
+        hit.on('pointerdown', () => {
+            if (hit.getData('restarting')) return;
+            hit.setData('restarting', true);
+            hit.disableInteractive();
+            draw(0x1d4ed8, 0xbfdbfe);
+            this.tweens.add({ targets: container, scale: 0.98, duration: 70, ease: 'Sine.easeOut' });
+            this.time.delayedCall(90, () => {
+                if (!this.sys.isActive()) return;
+                this.restartTrainRun();
+            });
+        });
+        hit.on('pointerup', () => {
+            if (hit.getData('restarting')) return;
+            draw(0x2563eb, 0xbfdbfe);
+            this.tweens.add({ targets: container, scale: 1.02, duration: 70, ease: 'Sine.easeOut' });
+        });
+
+        return container;
+    }
+
     private openStartModal ()
     {
         if (!this.startModal) return;
@@ -762,6 +903,53 @@ export class TrainGame extends Scene
         this.hasStarted = true;
         this.closeStartModal();
         this.openQuestion(this.currentIndex);
+    }
+
+    private openTimeUpModal (message: string = 'Out of time! Try again.')
+    {
+        if (!this.timeUpModal || !this.timeUpModalPanel) return;
+        this.timeUpTitleText.setText(message);
+        this.timeUpModalPanel.setScale(0.96);
+        this.timeUpModal.setVisible(true);
+        this.timeUpModal.setAlpha(0);
+        this.tweens.add({
+            targets: this.timeUpModal,
+            alpha: 1,
+            duration: 200
+        });
+        this.tweens.add({
+            targets: this.timeUpModalPanel,
+            scale: 1,
+            duration: 240,
+            ease: 'Back.easeOut'
+        });
+    }
+
+    private submitSessionResult ()
+    {
+        if (!this.sessionGameId) return;
+        import('../../services/api')
+            .then(({ endGameSession }) => endGameSession(this.sessionGameId as string, this.score))
+            .catch((error) => {
+                console.error('endGameSession failed', error);
+            });
+    }
+
+    private restartTrainRun ()
+    {
+        if (!this.sys || !this.sys.isActive()) return;
+        this.input.setDefaultCursor('default');
+        this.closeQuiz();
+        if (this.timeUpModal) {
+            this.timeUpModal.setVisible(false);
+        }
+        this.scene.restart({
+            gameCode: this.gameCode,
+            sessionId: this.sessionId,
+            gameId: this.sessionGameId,
+            questions: this.sessionQuestions,
+            timeLimit: this.sessionTimeLimit
+        });
     }
 
     private layoutQuiz ()
@@ -851,7 +1039,7 @@ export class TrainGame extends Scene
         if (this.currentIndex >= this.maxCars) {
             this.setBarrierOpen(true);
             this.moveTrainToEnd(() => {
-                this.endGame(`Hoàn thành đủ ${this.maxCars} toa!`, 'win');
+                this.endGame(`You completed all ${this.maxCars} cars!`, 'win');
             });
             return;
         }
@@ -1300,7 +1488,7 @@ export class TrainGame extends Scene
         }
 
         const leadCar = this.carSlots[0]?.car;
-        if (leadCar && this.leadCarBadge) {
+        if (leadCar && this.leadCarBadge && this.leadCarBadge.scene) {
             const offsetX = -leadCar.displayWidth * 0.34;
             const offsetY = -leadCar.displayHeight * 0.08;
             const rotation = leadCar.rotation;
@@ -1370,14 +1558,17 @@ export class TrainGame extends Scene
     {
         if (this.gameOver) return;
         this.gameOver = true;
+        this.quizOpen = false;
+        this.quizLocked = false;
+        this.hasStarted = false;
+        this.closeQuiz();
+        this.submitSessionResult();
 
-        this.scene.start('GameOver', {
-            gameId: this.sessionGameId,
-            score: this.score,
-            bonus: 0,
-            result,
-            reason
-        });
+        if (result === 'lose') {
+            this.openTimeUpModal('Out of time! Try again.');
+            return;
+        }
+        this.openTimeUpModal(reason || 'Great job! You won!');
     }
 
     private formatTime (seconds: number)
