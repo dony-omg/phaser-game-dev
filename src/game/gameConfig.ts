@@ -37,6 +37,7 @@ export function resolveGameCode(raw?: string | null): GameCode {
     if (!raw) return DEFAULT_GAME_CODE;
 
     if (raw === 'tower') return 'vocab_race';
+    if (raw === 'town') return 'vocab_race';
     if (raw === 'train') return 'train_game';
 
     return (raw in gameConfigs ? raw : DEFAULT_GAME_CODE) as GameCode;

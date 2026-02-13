@@ -1,4 +1,10 @@
 {
+  "components/GamePage.tsx -> @/App": {
+    "id": "components/GamePage.tsx -> @/App",
+    "files": [
+      "static/chunks/_pages-dir-browser_src_App_tsx.js"
+    ]
+  },
   "game/scenes/Game.ts -> ../../services/api": {
     "id": "game/scenes/Game.ts -> ../../services/api",
     "files": []
@@ -6,11 +12,5 @@
   "game/scenes/TrainGame.ts -> ../../services/api": {
     "id": "game/scenes/TrainGame.ts -> ../../services/api",
     "files": []
-  },
-  "pages/game/[code].tsx -> @/App": {
-    "id": "pages/game/[code].tsx -> @/App",
-    "files": [
-      "static/chunks/_pages-dir-browser_src_App_tsx.js"
-    ]
   }
 }

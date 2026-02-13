@@ -128,6 +128,7 @@ function shouldUseMock(options?: ApiCallOptions): boolean {
 function toApiGameCode(gameCode: string): string {
     if (gameCode === 'train_game' || gameCode === 'train') return 'trains_cars';
     if (gameCode === 'tower') return 'vocab_race';
+    if (gameCode === 'town') return 'vocab_race';
     return gameCode;
 }
 
