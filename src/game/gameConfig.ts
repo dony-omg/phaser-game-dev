@@ -15,7 +15,7 @@ const gameConfigs: Record<GameCode, GameConfig> = {
         code: 'vocab_race',
         label: 'Tower',
         mapKey: 'bg-tower',
-        mapPath: 'maps/bg 2.png',
+        mapPath: 'maps/All map.png',
         assetRoot: 'games/tower',
         backgroundColor: 0x3fb3e8,
         useTexturePath: true

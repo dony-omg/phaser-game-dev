@@ -1073,7 +1073,7 @@ export class Game extends Scene
         }
 
         const { width, height } = this.scale;
-        this.confettiEmitter = this.add.particles(0, 0, 'tile-flower', {
+        this.confettiEmitter = this.add.particles(0, 0, 'star', {
             speed: { min: 90, max: 170 },
             angle: { min: 0, max: 360 },
             rotate: { min: -220, max: 220 },

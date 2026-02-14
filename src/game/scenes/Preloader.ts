@@ -146,15 +146,17 @@ export class Preloader extends Scene
         } else {
             // ==================== UI ASSETS ====================
             this.load.image('star', `${assetRoot}/ui/star.png`);
-            this.load.image('ui-example', `${assetRoot}/ui/example.png`);
 
             // ==================== GAMEPLAY ASSETS ====================
-            this.load.image('bg-1', `${assetRoot}/backgrounds/1.png`);
-            this.load.image('bg-2', `${assetRoot}/backgrounds/2.png`);
-            this.load.image('bg-3', `${assetRoot}/backgrounds/3.png`);
-            this.load.image('bg-4', `${assetRoot}/backgrounds/4.png`);
-            this.load.image('bg-5', `${assetRoot}/backgrounds/5.png`);
-            this.load.image('bg-6', `${assetRoot}/backgrounds/6.png`);
+            // Mobile-safe fallback: avoid loading 9k textures that exceed
+            // max texture size on many mobile GPUs.
+            const mobileSafeBg = `${assetRoot}/maps/All map.png`;
+            this.load.image('bg-1', mobileSafeBg);
+            this.load.image('bg-2', mobileSafeBg);
+            this.load.image('bg-3', mobileSafeBg);
+            this.load.image('bg-4', mobileSafeBg);
+            this.load.image('bg-5', mobileSafeBg);
+            this.load.image('bg-6', mobileSafeBg);
             this.load.image(gameConfig.mapKey, `${assetRoot}/${gameConfig.mapPath}`);
 
             // ==================== CHARACTER ASSETS ====================
@@ -175,19 +177,7 @@ export class Preloader extends Scene
             this.load.image('emote-tran-incorrect', `${assetRoot}/emotes/emo tran incorrect.png`);
             this.load.image('emote-tran-incorrect-flipped', `${assetRoot}/emotes/emo tran flipped incorrect.png`);
 
-            // ==================== TILE ASSETS ====================
-            this.load.image('tile-1', `${assetRoot}/tiles/1.png`);
-            this.load.image('tile-2', `${assetRoot}/tiles/2.png`);
-            this.load.image('tile-3', `${assetRoot}/tiles/3.png`);
-            this.load.image('tile-4', `${assetRoot}/tiles/4.png`);
-            this.load.image('tile-5', `${assetRoot}/tiles/5.png`);
-            this.load.image('tile-6', `${assetRoot}/tiles/6.png`);
-            this.load.image('tile-flower', `${assetRoot}/tiles/flower.png`);
-            this.load.image('tile-green', `${assetRoot}/tiles/green.png`);
-            this.load.image('tile-shadow', `${assetRoot}/tiles/shadoe.png`);
-
-            // ==================== MAP ASSETS ====================
-            this.load.image('map-all', `${assetRoot}/maps/All map.png`);
+            // Avoid loading giant tile sheets on tower mobile path.
         }
     }
 

@@ -45,13 +45,14 @@ export class Boot extends Scene
             // Logo for branding during load
             this.load.image('logo', `${assetRoot}/background.png`);
         } else {
-            // Parallax background layers for loader
-            this.load.image('bg-1', `${assetRoot}/backgrounds/1.png`);
-            this.load.image('bg-2', `${assetRoot}/backgrounds/2.png`);
-            this.load.image('bg-3', `${assetRoot}/backgrounds/3.png`);
-            this.load.image('bg-4', `${assetRoot}/backgrounds/4.png`);
-            this.load.image('bg-5', `${assetRoot}/backgrounds/5.png`);
-            this.load.image('bg-6', `${assetRoot}/backgrounds/6.png`);
+            // Mobile-safe loader layers: avoid giant 9k-tall textures.
+            const loaderBg = `${assetRoot}/maps/All map.png`;
+            this.load.image('bg-1', loaderBg);
+            this.load.image('bg-2', loaderBg);
+            this.load.image('bg-3', loaderBg);
+            this.load.image('bg-4', loaderBg);
+            this.load.image('bg-5', loaderBg);
+            this.load.image('bg-6', loaderBg);
 
             // Logo for branding during load
             this.load.image('logo', `${assetRoot}/ui/logo.png`);
