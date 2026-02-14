@@ -1,1 +1,1 @@
-self.__NEXT_FONT_MANIFEST="{\"pages\":{\"/\":[\"static/media/e4af272ccee01ff0-s.p.woff2\"],\"/game/tower\":[\"static/media/e4af272ccee01ff0-s.p.woff2\"]},\"app\":{},\"appUsingSizeAdjust\":false,\"pagesUsingSizeAdjust\":true}"
+self.__NEXT_FONT_MANIFEST="{\"pages\":{\"/game/tower\":[\"static/media/e4af272ccee01ff0-s.p.woff2\"]},\"app\":{},\"appUsingSizeAdjust\":false,\"pagesUsingSizeAdjust\":true}"
